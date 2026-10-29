@@ -1,0 +1,29 @@
+<?xml version="1.0" ?>
+<policies>
+  <!-- generated from config/gateway.yaml use case incident-reader; backends in priority order: claude-haiku-5-5, claude-sonnet-5-5; daily budget EUR 6.0 is enforced by the cost alert in azure/infra/main.bicep -->
+  <inbound>
+    <base/>
+    <set-header name="x-use-case" exists-action="override">
+      <value>incident-reader</value>
+    </set-header>
+    <llm-content-safety backend-id="content-safety" shield-prompt="true"/>
+    <llm-token-limit counter-key="@(&quot;incident-reader&quot;)" tokens-per-minute="60000" estimate-prompt-tokens="true" remaining-tokens-variable-name="remainingTokens"/>
+    <llm-emit-token-metric namespace="charge-ops">
+      <dimension name="use-case" value="incident-reader"/>
+      <dimension name="owner" value="ai-unit/ops"/>
+      <dimension name="caller" value="@(context.Request.Headers.GetValueOrDefault(&quot;x-caller&quot;, &quot;unknown&quot;))"/>
+    </llm-emit-token-metric>
+    <llm-semantic-cache-lookup score-threshold="0.05" embeddings-backend-id="embeddings"/>
+    <set-backend-service backend-id="pool-incident-reader"/>
+  </inbound>
+  <backend>
+    <forward-request timeout="30" buffer-response="true"/>
+  </backend>
+  <outbound>
+    <base/>
+    <llm-semantic-cache-store duration="3600"/>
+  </outbound>
+  <on-error>
+    <base/>
+  </on-error>
+</policies>

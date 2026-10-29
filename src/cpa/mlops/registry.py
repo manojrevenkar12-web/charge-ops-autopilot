@@ -83,6 +83,22 @@ class Registry:
         mv = self.client.create_model_version(name, f"runs:/{rid}/model", rid, tags=tags)
         return str(mv.version)
 
+    def register_files(self, kind: str, folder: Path, tags: dict[str, str]) -> str:
+        """Register a version from a saved folder (model.txt, model.onnx, meta.json)."""
+        meta = json.loads((folder / "meta.json").read_text())
+        run = self.client.create_run(self.experiment, tags={"model": kind, **tags})
+        rid = run.info.run_id
+        for k, v in _flat(meta.get("metrics", {})).items():
+            self.client.log_metric(rid, k, v)
+        for f in folder.iterdir():
+            self.client.log_artifact(rid, str(f), "model")
+        self.client.set_terminated(rid)
+        try:
+            self.client.get_registered_model(kind)
+        except Exception:
+            self.client.create_registered_model(kind, description=f"charge-ops {kind} model")
+        return str(self.client.create_model_version(kind, f"runs:/{rid}/model", rid, tags=tags).version)
+
     def set_alias(self, name: str, alias: str, version: str) -> None:
         self.client.set_registered_model_alias(name, alias, version)
 

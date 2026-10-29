@@ -73,10 +73,11 @@ class Incident:
 class Autopilot:
     def __init__(self, name: str = "autopilot", *, autonomy: bool = True, vrp: bool = True, predictive: bool = True,
                  cohorts: bool = True, shield: bool = True, guards: bool = True, reader: bool = True,
-                 models_from: Any = None, retrain: bool = True) -> None:
+                 models_from: Any = None, retrain: bool = True, llm_decides: bool = False) -> None:
         self.name = name
         self.flags = {"autonomy": autonomy, "vrp": vrp, "predictive": predictive, "cohorts": cohorts,
-                      "shield": shield, "guards": guards, "reader": reader, "retrain": retrain}
+                      "shield": shield, "guards": guards, "reader": reader, "retrain": retrain,
+                      "llm_decides": llm_decides}
         self.ops = settings.ops()
         self.pcfg = self.ops["planner"]
         self.noc = self.ops["noc"]
@@ -181,8 +182,8 @@ class Autopilot:
             else:
                 inc.last_symptom_hour = hour
                 inc.symptoms |= names
-                if inc.state == "watch" and now - inc.watch_since > 2 * HOUR:
-                    inc.state = "open"  # it came back: decide again
+                if inc.state == "watch" and self._new_trouble(cid, inc.watch_since):
+                    inc.state = "open"  # it came back after the fix: decide again
                     inc.resolution = ""
             inc.good_since_symptom = False
         elif inc is not None:
@@ -191,6 +192,12 @@ class Autopilot:
             if hour - inc.last_symptom_hour > QUIET_HOURS and getattr(inc, "good_since_symptom", False) \
                     and inc.state not in ("part",):
                 self._close(inc, now, "recovered")
+
+    def _new_trouble(self, cid: str, since: int) -> bool:
+        """Fresh evidence after `since` (the rolling symptom windows still hold the failures from before a fix)."""
+        cv = self.view.chargers[cid]
+        return (any(t > since for t in cv.failed_starts) or any(t > since for t, _ in cv.evcomm_fails)
+                or bool(self.view.faulted(cid)) or not self.view.online(cid))
 
     def _close(self, inc: Incident, now: int, how: str) -> None:
         inc.state, inc.closed = "resolved", now
@@ -325,6 +332,8 @@ class Autopilot:
         note = {"ts": now, "top": top, "p": round(combined.get(top, 0), 3), "safety": safety,
                 "reader": reading.get("first_action"), "quarantined": reading.get("_quarantined", 0)}
         online = self.view.online(cid)
+        if self.flags["llm_decides"]:
+            return self._llm_decides(inc, reading, note, now)
         # 1. a site where everything went quiet at once: a grid or network outage, nothing to repair
         if not online and (row.get("site_silent") or 0) >= 0.6 and (row.get("site_n") or 0) >= 2:
             inc.wait_until = now + 3 * HOUR
@@ -398,6 +407,24 @@ class Autopilot:
                 cmd = Command(cid, "set_inoperative", 0, {}, reason="mostly failing until repaired", incident=inc.id)
                 cmds.extend(self._issue(inc, cmd, now, cls=top, track=False))
         return cmds
+
+    def _llm_decides(self, inc: Incident, reading: dict[str, Any], note: dict[str, Any], now: int) -> list[Command]:
+        """Positive control, not a design: the model's recommended action is executed as it stands, with no
+        planner, shield or approval in between. The evaluation must see the harm this does."""
+        a = reading.get("first_action") or "dispatch"
+        injected = any("instruction" in str(e) for e in reading.get("evidence", []))
+        if a == "wait":
+            inc.wait_until = now + 6 * HOUR
+            return []
+        if a == "dispatch" or a in {t for t, _, _ in inc.tried}:
+            inc.state, inc.parts = "dispatch", [k.split(":", 1)[1] for k, v in inc.probs.items()
+                                                if k.startswith("part:") and v >= 0.2]
+            return []
+        faulted = self.view.faulted(inc.charger_id)
+        cmd = Command(inc.charger_id, a, faulted[0] if faulted else 1, {"type": "Immediate"},
+                      reason=f"llm:{a}{' injected' if injected else ''}", incident=inc.id, decided_by="llm")
+        inc.decisions.append(note | {"decision": f"model said {a}"})
+        return self._send(inc, cmd, now, "llm", track=a in REMOTE)
 
     def _issue(self, inc: Incident, cmd: Command, now: int, cls: str, track: bool = True) -> list[Command]:
         v = self.shield.check(cmd, now)

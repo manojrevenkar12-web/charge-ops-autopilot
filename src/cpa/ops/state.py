@@ -76,7 +76,11 @@ class FleetView:
                     v.starts.append(r["ts"])
                     pend = self._pending.get(v.charger_id)
                     if pend:
-                        pend.pop(0)
+                        # authorisations older than ten minutes before this start never started: failed
+                        while pend and pend[0][0] < r["ts"] - 600:
+                            v.failed_starts.append(pend.pop(0)[0])
+                        if pend:
+                            pend.pop()  # this start belongs to the most recent authorisation
                 elif r["event_type"] == "Ended":
                     v.open_tx.pop(r["tx_id"], None)
                     e = r["energy_wh"] or 0.0

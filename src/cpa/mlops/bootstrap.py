@@ -3,6 +3,7 @@ registered with their model cards. Version 1 of each model is what the autopilot
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import polars as pl
@@ -27,7 +28,16 @@ def train_champions(registry: Registry, prep: dataset.Prepared, chargers: pl.Dat
         checks = models.onnx_check(m, onx, va.tail(min(2000, va.height)))
         v = registry.register(m, onx, checks, {"stage": "champion", "trained_on": "history"})
         registry.set_alias(kind, "champion", v)
+        folder = registry.root / "bootstrap" / kind  # so every run can start from the same champion
+        folder.mkdir(parents=True, exist_ok=True)
+        m.booster.save_model(str(folder / "model.txt"))
+        (folder / "model.onnx").write_bytes(onx)
+        (folder / "meta.json").write_text(json.dumps(
+            {"kind": m.kind, "classes": m.classes, "encoder": m.encoder.to_json(), "metrics": m.metrics,
+             "card": m.card, "checks": checks}, default=float))
         out[kind] = {"version": v, "metrics": m.metrics, "checks": checks, "card": m.card}
         log(f"{kind} v{v}: {({k: round(x, 3) for k, x in m.metrics.items() if isinstance(x, float)})}")
-    out["reference_rows"] = ds["diagnosis"]
+    ds["diagnosis"].select(*[c for c in ds["diagnosis"].columns if c in ("charger_id", "onset", "label")],
+                           *[c for c in ds["diagnosis"].columns if c not in ("charger_id", "onset", "label", "info")]
+                           ).write_parquet(registry.root / "bootstrap" / "reference_rows.parquet")
     return out

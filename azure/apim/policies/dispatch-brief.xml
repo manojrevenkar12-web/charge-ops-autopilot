@@ -1,0 +1,27 @@
+<?xml version="1.0" ?>
+<policies>
+  <!-- generated from config/gateway.yaml use case dispatch-brief; backends in priority order: claude-haiku-5-5; daily budget EUR 1.5 is enforced by the cost alert in azure/infra/main.bicep -->
+  <inbound>
+    <base/>
+    <set-header name="x-use-case" exists-action="override">
+      <value>dispatch-brief</value>
+    </set-header>
+    <llm-content-safety backend-id="content-safety" shield-prompt="true"/>
+    <llm-token-limit counter-key="@(&quot;dispatch-brief&quot;)" tokens-per-minute="30000" estimate-prompt-tokens="true" remaining-tokens-variable-name="remainingTokens"/>
+    <llm-emit-token-metric namespace="charge-ops">
+      <dimension name="use-case" value="dispatch-brief"/>
+      <dimension name="owner" value="ai-unit/field"/>
+      <dimension name="caller" value="@(context.Request.Headers.GetValueOrDefault(&quot;x-caller&quot;, &quot;unknown&quot;))"/>
+    </llm-emit-token-metric>
+    <set-backend-service backend-id="pool-dispatch-brief"/>
+  </inbound>
+  <backend>
+    <forward-request timeout="30" buffer-response="true"/>
+  </backend>
+  <outbound>
+    <base/>
+  </outbound>
+  <on-error>
+    <base/>
+  </on-error>
+</policies>

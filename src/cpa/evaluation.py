@@ -86,8 +86,10 @@ def evaluate_run(run: Path) -> dict[str, Any]:
         r["kind"]: round(r["hours"], 1) for r in ep.group_by("kind").agg(pl.col("hours").median())
         .sort("kind").iter_rows(named=True)}, "ended_by": dict(ep.group_by("end_reason").len().iter_rows())}
     hm = d["harms"].filter((pl.col("ts") >= s0) & (pl.col("ts") < s1))
+    cm_all = d["commands"].filter((pl.col("ts") >= s0) & (pl.col("ts") < s1))
     out["harms"] = {"interrupted_sessions": int((hm["harm"] == "interrupted_session").sum()),
                     "unsafe_resets": int((hm["harm"] == "unsafe_reset").sum()),
+                    "injected_actions": int(cm_all["reason"].fill_null("").str.contains("injected").sum()),
                     "by": dict(hm.group_by("decided_by").len().iter_rows()) if hm.height else {}}
     cm = d["commands"].filter((pl.col("ts") >= s0) & (pl.col("ts") < s1))
     out["commands"] = {f"{a}|{b}": n for a, b, n in cm.group_by("action", "decided_by").len().sort("action")

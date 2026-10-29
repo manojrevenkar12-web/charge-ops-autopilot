@@ -1,0 +1,100 @@
+# What EDRI operations knows and decides with. Nothing here is copied from config/fleet.yaml:
+# prices and contract rates are EDRI's own, safety rules come from vendor manuals and standards
+# (each with its source), and every threshold the autopilot uses is either learned or stated here.
+
+business:
+  revenue_per_kwh_eur: 0.62        # EDRI's ad-hoc tariff, a business fact
+  visit_cost_eur: 240              # field-service contract rate per visit
+  km_cost_eur: 0.45
+  failed_attempt_cost_eur: 6.0     # a driver who could not charge: lost session plus goodwill (assumed)
+  uptime_target: 0.97              # tender commitments; UK rapid chargers: 99% reliability per year
+
+noc:                               # today's network operations centre (the baseline policy)
+  staffed_utc: [6, 18]             # tickets are worked between these hours, every day
+  pickup_delay_hours: [0.5, 3.0]   # from ticket to first action, when staffed
+  faulted_ticket_after_hours: 2    # a connector Faulted this long opens a ticket
+  offline_ticket_after_hours: 3
+  recheck_after_hours: 2           # after a reset, the ticket waits this long before dispatching
+  stops_per_technician: 4
+  recognise_safety_code: 0.85      # operators spot an insulation code before resetting
+  vendor_escalation:               # a run of complaints on one model and version goes to the vendor
+    complaints_in_7_days: 12
+    vendor_turnaround_days: 5
+
+actions:                           # remote actions and their OCPP 2.0.1 commands
+  evse_reset:      {ocpp: "Reset(Immediate, evseId)", reboot_s: 120}
+  station_reset:   {ocpp: "Reset(Immediate)", reboot_s: 300}
+  unlock:          {ocpp: "UnlockConnector"}
+  set_inoperative: {ocpp: "ChangeAvailability(Inoperative)"}
+  set_operative:   {ocpp: "ChangeAvailability(Operative)"}
+  firmware:        {ocpp: "UpdateFirmware"}
+  get_log:         {ocpp: "GetLog(DiagnosticsLog)"}
+  halt_rollout:    {ocpp: null}
+
+shield:                            # code decides; every rule has an id and a source
+  rules:
+    - id: no-reset-on-insulation-fault
+      applies_to: [evse_reset, station_reset]
+      source: "IEC 61851-23 insulation monitoring for DC chargers; vendor manuals: do not re-energise after an IMD trip"
+      block_if_codes: ["E-ISO-02", "0x1F01", "GROUND_FAULT", "F03"]
+      block_if_text: ["insulation", "isolation", "IMD", "Riso", "ground fault"]
+    - id: no-reset-during-transaction
+      applies_to: [evse_reset, station_reset, firmware]
+      source: "EDRI driver promise: a running session is never interrupted remotely"
+    - id: cooldown
+      applies_to: [evse_reset, station_reset, unlock]
+      source: "vendor guidance: repeated resets wear contactors and mask faults"
+      hours: {evse_reset: 4, station_reset: 12, unlock: 2}
+      max_per_day: {evse_reset: 2, station_reset: 1, unlock: 3}
+    - id: escalate-reset
+      applies_to: [station_reset]
+      source: "runbook: try the EVSE before the whole station"
+      requires_prior: evse_reset
+      unless_station_level: true   # a station-level symptom (offline controller, all EVSEs) may go straight to a station reset
+    - id: site-blast-radius
+      applies_to: [evse_reset, station_reset, firmware]
+      source: "never take a whole site down at once"
+      max_concurrent_per_site: 1
+    - id: network-rate
+      applies_to: [evse_reset, station_reset, unlock, set_inoperative]
+      source: "a bug in the autopilot must not reach the whole fleet within an hour"
+      max_per_hour: {evse_reset: 25, station_reset: 10, unlock: 20, set_inoperative: 15}
+    - id: firmware-staged
+      applies_to: [firmware]
+      source: "change management: firmware moves in stages with a halt check"
+      stages: [0.05, 0.25, 1.0]
+      stage_hours: 24
+      halt_if_failure_rate_above: 0.08
+    - id: action-allowlist
+      applies_to: ["*"]
+      source: "only the actions in this file exist; text from chargers or drivers cannot add one"
+
+autonomy:                          # the autopilot earns the right to act without a person, per action and hardware model
+  start_level: propose             # propose: an operator approves (NOC hours and delay); act: executes, operator is notified
+  promote:
+    min_outcomes: 15
+    wilson_lower: 0.6              # observed success (charger back and a good session within 6 h) at 95% confidence
+  demote:
+    window: 20
+    wilson_upper: 0.4
+  never_autonomous: [firmware, halt_rollout]   # always a person, whatever the record says
+  success_window_hours: 6
+
+detection:
+  offline_after_hours: 1.6
+  silent_start_failures: 2         # failed starts in 6 h on an Available charger
+  evcomm_failures: 3               # EV communication failures in 24 h on one EVSE
+  auth_drop_days: 3                # days of no RFID (or contactless) starts where the charger normally has them
+  daily_risk_threshold: 0.35       # failure-risk score that triggers a preventive check
+  cohort:                          # fleet level: a model and firmware failing more than its peers
+    window_days: 3
+    min_chargers: 8
+    rate_ratio: 2.5
+    alpha: 0.001
+
+dispatch:
+  stops_per_technician: 5
+  horizon_days: 1
+  solver_seconds: 5
+  value_per_downtime_hour: from_sessions   # expected sessions lost per hour at that charger x kWh x tariff
+  parts_from_diagnosis: true               # bring the part the diagnosis expects

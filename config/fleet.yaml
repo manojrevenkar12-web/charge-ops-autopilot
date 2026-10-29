@@ -1,0 +1,134 @@
+# The simulated fleet's TRUE parameters. Only src/cpa/sim and src/cpa/evaluation read this file
+# (tests/test_isolation.py checks it). The operations code learns everything from OCPP messages,
+# technician reports and outcomes it can observe.
+
+seed: 2026
+start: "2026-03-02"          # a Monday
+history_days: 98             # operated by today's process; the models learn from this
+test_days: 42                # each policy runs these same days with the same faults and drivers
+
+fleet:
+  chargers: 900
+  countries:                 # share of chargers and local UTC offset in hours (winter time)
+    DE: {share: 0.24, utc: 1, lang: de, technicians: 7}
+    GB: {share: 0.14, utc: 0, lang: en, technicians: 5}
+    IT: {share: 0.10, utc: 1, lang: it, technicians: 4}
+    NL: {share: 0.08, utc: 1, lang: nl, technicians: 3}
+    SE: {share: 0.07, utc: 1, lang: sv, technicians: 3}
+    DK: {share: 0.07, utc: 1, lang: da, technicians: 3}
+    PL: {share: 0.08, utc: 1, lang: pl, technicians: 3}
+    CZ: {share: 0.06, utc: 1, lang: cs, technicians: 2}
+    AT: {share: 0.06, utc: 1, lang: de, technicians: 2}
+    HU: {share: 0.05, utc: 1, lang: hu, technicians: 2}
+    RO: {share: 0.05, utc: 2, lang: ro, technicians: 2}
+  chargers_per_site: [1, 6]  # uniform integer range
+  site_radius_km: 160        # sites scatter around 2-4 city clusters per country
+
+models:                      # fictional hardware; connectors per charger, sessions/day at a typical site
+  HPC-350:   {vendor: Alpenstrom, kind: HPC, kw: 350, connectors: 2, share: 0.22, sessions_per_day: 11, firmware: ["3.4.2", "3.5.0"]}
+  DC-150:    {vendor: Nordvolt,   kind: DC,  kw: 150, connectors: 2, share: 0.30, sessions_per_day: 8,  firmware: ["2.11.0", "2.12.1"]}
+  DC-60:     {vendor: Kestrel,    kind: DC,  kw: 60,  connectors: 2, share: 0.18, sessions_per_day: 5,  firmware: ["1.9.7"]}
+  AC-22:     {vendor: Volta,      kind: AC,  kw: 22,  connectors: 2, share: 0.30, sessions_per_day: 3,  firmware: ["5.0.3", "5.1.0"]}
+
+drivers:
+  # how drivers start a session: RFID card, app (remote start), contactless payment terminal (DC/HPC only)
+  auth_mix: {rfid: 0.42, app: 0.38, contactless: 0.20}
+  retry_after_failure: 0.35   # a driver whose start fails tries once more at the same charger
+  complaint_per_failure: 0.04 # chance a failed attempt becomes a hotline complaint naming the charger
+  hourly_profile: [0.2, 0.15, 0.1, 0.1, 0.15, 0.3, 0.6, 0.9, 1.1, 1.2, 1.2, 1.3,
+                   1.4, 1.3, 1.3, 1.4, 1.5, 1.6, 1.5, 1.3, 1.1, 0.8, 0.5, 0.3]
+  weekend_factor: 0.85
+  site_demand_sd: 0.45        # log-normal spread of demand between sites
+  kwh_per_session: {HPC: 38, DC: 27, AC: 12}
+  revenue_per_kwh_eur: 0.62
+
+# Faults. hazard = expected new episodes per charger per 30 days, by hardware model.
+# visible: what the charger itself reports. remedies: chance each remote action ends the episode.
+# part: what a technician needs; without it the visit diagnoses and a second visit follows.
+hazard_scale: 0.7            # multiplies every hazard below
+faults:
+  controller_hang:
+    hazard: {HPC-350: 0.55, DC-150: 0.75, DC-60: 0.6, AC-22: 0.35}
+    effect: {start_fails: 0.97}           # status stays Available, sessions do not start (silent)
+    signals: {watchdog_event: 0.55}       # NotifyEvent Controller/Watchdog per hour while active
+    remedies: {evse_reset: 0.88, station_reset: 0.95}
+    natural_end_hours: 120                # mean time to end on its own (rare watchdog reboot)
+    part: null
+  connector_lock:
+    hazard: {HPC-350: 0.25, DC-150: 0.4, DC-60: 0.3, AC-22: 0.45}
+    effect: {connector_faulted: true}     # one connector Faulted, the other keeps working
+    tech_codes: {HPC-350: "E-LCK-31", DC-150: "0x2A07", DC-60: "LOCK_TIMEOUT", AC-22: "F17"}
+    remedies: {unlock: 0.62, evse_reset: 0.15, station_reset: 0.2}
+    natural_end_hours: 400
+    part: lock_actuator
+  power_module:
+    hazard: {HPC-350: 0.32, DC-150: 0.22, DC-60: 0.18, AC-22: 0.0}
+    onset_days: [2, 6]                    # latent degradation before the module trips
+    effect: {derate_to: 0.55, then: charger_faulted}
+    signals: {temperature_rise_c: 18}     # module temperature climbs during onset
+    tech_codes: {HPC-350: "E-PWR-12", DC-150: "0x3110", DC-60: "PM_OVERTEMP"}
+    remedies: {evse_reset: 0.05, station_reset: 0.08, relief_hours: 5, relief: 0.6}  # a reset buys a few hours
+    natural_end_hours: null
+    part: power_module
+  rfid_reader:
+    hazard: {HPC-350: 0.18, DC-150: 0.28, DC-60: 0.3, AC-22: 0.32}
+    effect: {rfid_fails: 1.0}             # cards do nothing; app and contactless still work (silent)
+    remedies: {evse_reset: 0.25, station_reset: 0.45}
+    natural_end_hours: null
+    part: rfid_reader
+  payment_terminal:
+    hazard: {HPC-350: 0.3, DC-150: 0.35, DC-60: 0.25, AC-22: 0.0}
+    effect: {contactless_fails: 1.0}
+    signals: {terminal_event: 0.3}
+    tech_codes: {HPC-350: "PT-OFFLINE", DC-150: "PT-OFFLINE", DC-60: "PT-OFFLINE"}
+    remedies: {evse_reset: 0.55, station_reset: 0.6}
+    natural_end_hours: 200
+    part: payment_terminal
+  cable_wear:
+    hazard: {HPC-350: 0.12, DC-150: 0.15, DC-60: 0.12, AC-22: 0.05}
+    effect: {ev_comm_fails: 0.45}         # sessions start and stop with an EV communication error
+    remedies: {evse_reset: 0.03, station_reset: 0.03}
+    natural_end_hours: null
+    part: cable
+  isolation_fault:
+    hazard: {HPC-350: 0.06, DC-150: 0.08, DC-60: 0.07, AC-22: 0.05}
+    effect: {charger_faulted: true}
+    tech_codes: {HPC-350: "E-ISO-02", DC-150: "0x1F01", DC-60: "GROUND_FAULT", AC-22: "F03"}
+    unsafe_to_reset: true                 # re-energising a damaged cable is a safety incident
+    remedies: {evse_reset: 0.0, station_reset: 0.0}
+    natural_end_hours: null
+    part: cable
+  comm_loss:
+    hazard: {HPC-350: 0.25, DC-150: 0.3, DC-60: 0.35, AC-22: 0.4}
+    effect: {offline: true, still_charges: 0.7}  # the charger drops off OCPP; most keep charging locally
+    remedies: {}                          # unreachable by OCPP; ends on its own or with a visit
+    natural_end_hours: 30
+    part: modem
+  grid_outage:                            # site level, not a charger fault: excluded from uptime
+    hazard_per_site: 0.12
+    duration_hours: [2, 14]
+    effect: {offline: true, still_charges: 0.0}
+    part: null
+
+firmware_rollouts:                        # vendor releases EDRI installs; one carries a hidden bug
+  - {model: DC-150, version: "2.12.1", day: 35, share_per_day: 0.08, bug: null}
+  - {model: AC-22,  version: "5.1.0",  day: 60, share_per_day: 0.10, bug: null}
+  - {model: HPC-350, version: "3.5.0", day: 104, share_per_day: 0.12,
+     bug: {ev_comm_fails: 0.32, affected_ev_share: 0.4}}   # some EV makes fail the ISO 15118 handshake
+rollback_remedies: {firmware_rollback: 0.97}
+
+field_service:
+  workday_local: [8, 17]
+  workdays: [0, 1, 2, 3, 4]              # Monday to Friday
+  speed_kmh: 70
+  visit_hours: {diagnose: 0.75, repair: 1.25}
+  van_stock: {lock_actuator: 0.7, power_module: 0.25, rfid_reader: 0.6, payment_terminal: 0.5,
+              cable: 0.45, modem: 0.8}    # chance a part is in the van when the technician arrives unprepared
+  part_lead_days: {lock_actuator: 2, power_module: 4, rfid_reader: 2, payment_terminal: 3, cable: 3, modem: 1}
+  visit_cost_eur: 240
+  km_cost_eur: 0.45
+  note_language_local: 0.8               # technicians write notes in the local language
+  note_cause_wrong: 0.1                  # technicians record the wrong cause this often
+
+untrusted_text:
+  injection_share: 0.02                  # vendor techInfo strings that carry instructions to a model

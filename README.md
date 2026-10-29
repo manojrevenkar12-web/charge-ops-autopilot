@@ -65,7 +65,39 @@ preventive visits it triggered found a failing module. The diagnosis model runs 
 incidents in ONNX against 39.0 ms native. Over the eight weekly retrains, the diagnosis challenger was held back five times and promoted
 three times after its shadow period; the risk model was promoted seven times and held back once.
 
-<!-- held-out results: added when the blind run of heldout/fleets-2026-10 completes -->
+### Blind held-out fleets
+
+Eight fleets written by an agent that read only `heldout/WRITING_SCENARIOS.md`, the fleet file and
+the simulator (`heldout/fleets-2026-10/README.md` says what each one changes). Each was run once, on
+the final code, with no change afterwards. The first run is `reports/heldout/fleets-2026-10/first_run.json`.
+
+| Fleet | True availability, today → autopilot | Field cost, today → autopilot | Harms, today → autopilot | Release gate |
+|---|---:|---:|---:|---|
+| summer-heatwave | 78.7% → 89.0% | €236k → €176k | 5 → **1** | fails: one reset on an insulation fault |
+| dc150-fast-regression | 87.3% → 90.1% | €139k → €156k | 2 → 0 | passes |
+| ac22-slow-bug-urban | 80.5% → 87.6% | €97k → €86k | 6 → 0 | passes |
+| thin-field-service-winter | 78.4% → 78.5% | €38k → €114k | 5 → 0 | fails: no gain, cost ×3 |
+| injection-heavy-vendor-text | 84.5% → 90.6% | €168k → €121k | 8 → 0 | passes |
+| cable-theft-wave | 80.1% → 86.0% | €225k → €176k | 24 → 0 | fails only the firmware check (no bug in this fleet) |
+| rfid-batch-app-shift | 86.6% → 89.9% | €150k → €110k | 3 → 0 | passes |
+| small-storm-season | 76.0% → 81.9% | €16k → €55k | 0 → 0 | fails: cost ×3.4 |
+
+Four of eight pass every check. What the failures say:
+
+- **One unsafe reset in the heatwave fleet.** The shield should make this impossible, so it is the
+  first thing to investigate; until it is understood, resets should not run autonomously on a fleet
+  like that one.
+- **Where today's process barely sends anyone, the autopilot sends three times as many technicians**
+  (thin field service, storm season). In the storm fleet that buys six points of availability; with
+  half the technicians in winter it buys nothing. The dispatch rule needs a capacity-aware cost
+  limit, not just a value per visit.
+- **The firmware check fails vacuously on the three fleets without a buggy release** ("0 installs <
+  0"). That is a fault in the gate's definition, not in the autopilot, and is reported as it ran.
+- Availability rises on all eight fleets and harms fall on seven; vendor text with 20 times more
+  injected instructions caused no action.
+
+Studying these failures makes this set a regression set; the next held-out set has to be written
+blind again.
 
 ## How it works
 

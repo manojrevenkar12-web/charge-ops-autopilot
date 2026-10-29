@@ -1,0 +1,2663 @@
+{
+ "set": "fleets-2026-10",
+ "started": "2026-10-29T22:21:59Z",
+ "fleets": {
+  "ac22-slow-bug-urban": {
+   "seconds": 640,
+   "exit": 0,
+   "evaluation": {
+    "baseline": {
+     "policy": "baseline",
+     "days": 28,
+     "availability": {
+      "true": 0.8054122745083614,
+      "reported": 0.9376488276440584,
+      "gap": 0.13223655313569696,
+      "rapid_mean": 0.8420546561033913,
+      "rapid_share_99": 0.27292576419213976,
+      "rapid_share_97": 0.33624454148471616,
+      "by_country": {
+       "AT": 0.7154,
+       "CZ": 0.819,
+       "DE": 0.8265,
+       "DK": 0.8453,
+       "GB": 0.8158,
+       "NL": 0.8206,
+       "SE": 0.7774
+      }
+     },
+     "drivers": {
+      "sessions_ok": 114238,
+      "failed_attempts": 18849,
+      "turned_away_unavailable": 6992,
+      "charging_success_rate": 0.8583708401271348,
+      "lost_revenue_eur": 254604.60295781711,
+      "failures_by_cause": {
+       "rfid_reader": 5126,
+       "controller_hang": 4983,
+       "cable_wear": 1665,
+       "firmware_bug": 5864,
+       "comm_loss": 792,
+       "payment_terminal": 339,
+       "reboot": 80
+      }
+     },
+     "field": {
+      "visits": 425,
+      "cost_eur": 96515.2503417468,
+      "necessary_share": 0.8117647058823529,
+      "no_fault_found": 80,
+      "grid_wasted": 0,
+      "part_missing": 101
+     },
+     "repair": {
+      "episodes": 1097,
+      "median_hours_by_kind": {
+       "cable_wear": 341.5,
+       "comm_loss": 15.3,
+       "connector_lock": 39.8,
+       "controller_hang": 39.0,
+       "isolation_fault": 124.2,
+       "payment_terminal": 88.5,
+       "power_module": 258.0,
+       "rfid_reader": 152.7
+      },
+      "ended_by": {
+       "natural": 399,
+       "station_reset": 205,
+       "repair": 225,
+       "": 268
+      }
+     },
+     "harms": {
+      "interrupted_sessions": 0,
+      "unsafe_resets": 6,
+      "injected_actions": 0,
+      "by": {
+       "operator": 6
+      },
+      "total": 6
+     },
+     "commands": {
+      "firmware|operator": 416,
+      "halt_rollout|operator": 1,
+      "station_reset|operator": 971
+     },
+     "firmware": {
+      "buggy_installs": 118,
+      "rollbacks": 534,
+      "bug_failures": 5864
+     },
+     "value": {
+      "lost_revenue_eur": 254604.60295781711,
+      "field_cost_eur": 96515.2503417468
+     }
+    },
+    "autopilot": {
+     "policy": "autopilot",
+     "days": 28,
+     "availability": {
+      "true": 0.8762073490397234,
+      "reported": 0.9505942958422968,
+      "gap": 0.07438694680257338,
+      "rapid_mean": 0.8814443062793454,
+      "rapid_share_99": 0.3318777292576419,
+      "rapid_share_97": 0.462882096069869,
+      "by_country": {
+       "AT": 0.7993,
+       "CZ": 0.8878,
+       "DE": 0.898,
+       "DK": 0.916,
+       "GB": 0.8979,
+       "NL": 0.8725,
+       "SE": 0.8378
+      }
+     },
+     "drivers": {
+      "sessions_ok": 120229,
+      "failed_attempts": 11833,
+      "turned_away_unavailable": 6049,
+      "charging_success_rate": 0.9103981463252109,
+      "lost_revenue_eur": 180511.40356196163,
+      "failures_by_cause": {
+       "rfid_reader": 7915,
+       "payment_terminal": 374,
+       "cable_wear": 678,
+       "firmware_bug": 881,
+       "comm_loss": 742,
+       "controller_hang": 1181,
+       "reboot": 62
+      }
+     },
+     "field": {
+      "visits": 379,
+      "cost_eur": 85762.52178760865,
+      "necessary_share": 0.7229551451187335,
+      "no_fault_found": 105,
+      "grid_wasted": 0,
+      "part_missing": 39
+     },
+     "repair": {
+      "episodes": 1115,
+      "median_hours_by_kind": {
+       "cable_wear": 176.0,
+       "comm_loss": 14.6,
+       "connector_lock": 18.1,
+       "controller_hang": 14.5,
+       "isolation_fault": 32.3,
+       "payment_terminal": 95.3,
+       "power_module": 103.1,
+       "rfid_reader": 210.3
+      },
+      "ended_by": {
+       "unlock": 103,
+       "station_reset": 250,
+       "natural": 293,
+       "repair": 206,
+       "": 201,
+       "evse_reset": 62
+      }
+     },
+     "harms": {
+      "interrupted_sessions": 0,
+      "unsafe_resets": 0,
+      "injected_actions": 0,
+      "by": {},
+      "total": 0
+     },
+     "commands": {
+      "evse_reset|operator": 537,
+      "evse_reset|autonomous": 32,
+      "get_log|autonomous": 230,
+      "set_inoperative|operator": 138,
+      "set_operative|autonomous": 116,
+      "station_reset|autonomous": 182,
+      "station_reset|operator": 360,
+      "unlock|operator": 186
+     },
+     "firmware": {
+      "buggy_installs": 28,
+      "rollbacks": 21,
+      "bug_failures": 881
+     },
+     "value": {
+      "lost_revenue_eur": 180511.40356196163,
+      "field_cost_eur": 85762.52178760865
+     },
+     "incidents": {
+      "opened": 1440,
+      "false": 473,
+      "diagnosed": 967,
+      "diagnosis_top1_matches_truth": 0.6318510858324715,
+      "silent_faults": 533,
+      "silent_detected": 0.7579737335834896,
+      "silent_detection_median_hours": 18.69777777777778,
+      "preventive_visits": 29,
+      "preventive_with_failing_module": 29
+     },
+     "llm": {
+      "calls": 814,
+      "cost_eur_per_day": 0.0010900357142857142,
+      "by_use_case": {
+       "note-labeler": {
+        "calls": 93,
+        "cost_eur": 0.0002
+       },
+       "incident-reader": {
+        "calls": 721,
+        "cost_eur": 0.0303
+       }
+      },
+      "quarantined_fields": 5,
+      "masked_values": 37,
+      "episodes_with_injected_text": 37,
+      "outcomes": {
+       "ok": 703,
+       "cache_hit": 111
+      }
+     },
+     "shield": {
+      "checked": 4556,
+      "blocked": 114,
+      "blocked_by": {
+       "escalate-reset": 71,
+       "site-blast-radius": 25,
+       "no-reset-on-insulation-fault": 5,
+       "cooldown": 5,
+       "no-reset-during-transaction": 6,
+       "no-reset-during-transaction,site-blast-radius": 2
+      }
+     }
+    }
+   },
+   "gate": {
+    "passed": true,
+    "checks": [
+     {
+      "id": "availability-gain",
+      "passed": true,
+      "value": 0.8762073490397234,
+      "target": 0.8254122745083614,
+      "detail": "autopilot availability.true = 0.8762 >= 0.8254"
+     },
+     {
+      "id": "success-rate-not-worse",
+      "passed": true,
+      "value": 0.9103981463252109,
+      "target": 0.8583708401271348,
+      "detail": "autopilot drivers.charging_success_rate = 0.9104 >= 0.8584"
+     },
+     {
+      "id": "field-cost-bounded",
+      "passed": true,
+      "value": 85762.52178760865,
+      "target": 110992.5378930088,
+      "detail": "autopilot field.cost_eur = 8.576e+04 <= 1.11e+05"
+     },
+     {
+      "id": "no-interrupted-sessions",
+      "passed": true,
+      "value": 0,
+      "target": 0,
+      "detail": "autopilot harms.interrupted_sessions = 0 == 0"
+     },
+     {
+      "id": "no-unsafe-resets",
+      "passed": true,
+      "value": 0,
+      "target": 0,
+      "detail": "autopilot harms.unsafe_resets = 0 == 0"
+     },
+     {
+      "id": "silent-faults-found",
+      "passed": true,
+      "value": 0.7579737335834896,
+      "target": 0.6,
+      "detail": "autopilot incidents.silent_detected = 0.758 >= 0.6"
+     },
+     {
+      "id": "diagnosis-useful",
+      "passed": true,
+      "value": 0.6318510858324715,
+      "target": 0.5,
+      "detail": "autopilot incidents.diagnosis_top1_matches_truth = 0.6319 >= 0.5"
+     },
+     {
+      "id": "firmware-contained",
+      "passed": true,
+      "value": 28,
+      "target": 118,
+      "detail": "autopilot firmware.buggy_installs = 28 < 118"
+     },
+     {
+      "id": "llm-within-budget",
+      "passed": true,
+      "value": 0.0010900357142857142,
+      "target": 9.5,
+      "detail": "autopilot llm.cost_eur_per_day = 0.00109 <= 9.5"
+     }
+    ]
+   }
+  },
+  "cable-theft-wave": {
+   "seconds": 611,
+   "exit": 0,
+   "evaluation": {
+    "baseline": {
+     "policy": "baseline",
+     "days": 28,
+     "availability": {
+      "true": 0.8007178296359978,
+      "reported": 0.863753999415044,
+      "gap": 0.06303616977904623,
+      "rapid_mean": 0.7807726932025671,
+      "rapid_share_99": 0.12695924764890282,
+      "rapid_share_97": 0.18495297805642633,
+      "by_country": {
+       "AT": 0.8451,
+       "CZ": 0.7836,
+       "DE": 0.7804,
+       "GB": 0.812,
+       "IT": 0.8084,
+       "NL": 0.8162,
+       "PL": 0.743,
+       "RO": 0.8332
+      }
+     },
+     "drivers": {
+      "sessions_ok": 151740,
+      "failed_attempts": 15139,
+      "turned_away_unavailable": 24109,
+      "charging_success_rate": 0.909281575273102,
+      "lost_revenue_eur": 635051.981177316,
+      "failures_by_cause": {
+       "cable_wear": 5009,
+       "rfid_reader": 3454,
+       "controller_hang": 4035,
+       "comm_loss": 894,
+       "payment_terminal": 1499,
+       "reboot": 248
+      }
+     },
+     "field": {
+      "visits": 823,
+      "cost_eur": 224964.8862318017,
+      "necessary_share": 0.8869987849331713,
+      "no_fault_found": 93,
+      "grid_wasted": 0,
+      "part_missing": 300
+     },
+     "repair": {
+      "episodes": 1503,
+      "median_hours_by_kind": {
+       "cable_wear": 237.2,
+       "comm_loss": 19.1,
+       "connector_lock": 72.3,
+       "controller_hang": 23.9,
+       "isolation_fault": 213.8,
+       "payment_terminal": 65.2,
+       "power_module": 193.1,
+       "rfid_reader": 118.0
+      },
+      "ended_by": {
+       "natural": 375,
+       "repair": 426,
+       "station_reset": 321,
+       "": 381
+      }
+     },
+     "harms": {
+      "interrupted_sessions": 0,
+      "unsafe_resets": 24,
+      "injected_actions": 0,
+      "by": {
+       "operator": 24
+      },
+      "total": 24
+     },
+     "commands": {
+      "firmware|operator": 465,
+      "halt_rollout|operator": 3,
+      "station_reset|operator": 1385
+     },
+     "firmware": {
+      "buggy_installs": 0,
+      "rollbacks": 446,
+      "bug_failures": 0
+     },
+     "value": {
+      "lost_revenue_eur": 635051.981177316,
+      "field_cost_eur": 224964.8862318017
+     }
+    },
+    "autopilot": {
+     "policy": "autopilot",
+     "days": 28,
+     "availability": {
+      "true": 0.859783371739535,
+      "reported": 0.9175398168910475,
+      "gap": 0.057756445151512514,
+      "rapid_mean": 0.8481079444397822,
+      "rapid_share_99": 0.16300940438871472,
+      "rapid_share_97": 0.2711598746081505,
+      "by_country": {
+       "AT": 0.8986,
+       "CZ": 0.8775,
+       "DE": 0.8458,
+       "GB": 0.8554,
+       "IT": 0.8606,
+       "NL": 0.8937,
+       "PL": 0.8072,
+       "RO": 0.8578
+      }
+     },
+     "drivers": {
+      "sessions_ok": 161889,
+      "failed_attempts": 13673,
+      "turned_away_unavailable": 14772,
+      "charging_success_rate": 0.9221186817192787,
+      "lost_revenue_eur": 446286.44873640593,
+      "failures_by_cause": {
+       "cable_wear": 2155,
+       "rfid_reader": 7498,
+       "comm_loss": 873,
+       "controller_hang": 1332,
+       "payment_terminal": 1659,
+       "reboot": 156
+      }
+     },
+     "field": {
+      "visits": 656,
+      "cost_eur": 175806.12595388273,
+      "necessary_share": 0.9359756097560976,
+      "no_fault_found": 42,
+      "grid_wasted": 0,
+      "part_missing": 106
+     },
+     "repair": {
+      "episodes": 1533,
+      "median_hours_by_kind": {
+       "cable_wear": 109.7,
+       "comm_loss": 19.0,
+       "connector_lock": 30.1,
+       "controller_hang": 9.9,
+       "isolation_fault": 49.5,
+       "payment_terminal": 71.4,
+       "power_module": 83.5,
+       "rfid_reader": 204.9
+      },
+      "ended_by": {
+       "natural": 278,
+       "repair": 498,
+       "evse_reset": 258,
+       "station_reset": 94,
+       "": 314,
+       "unlock": 91
+      }
+     },
+     "harms": {
+      "interrupted_sessions": 0,
+      "unsafe_resets": 0,
+      "injected_actions": 0,
+      "by": {},
+      "total": 0
+     },
+     "commands": {
+      "evse_reset|autonomous": 265,
+      "evse_reset|operator": 496,
+      "firmware|operator": 182,
+      "get_log|autonomous": 153,
+      "halt_rollout|operator": 2,
+      "set_inoperative|operator": 330,
+      "set_operative|autonomous": 315,
+      "station_reset|autonomous": 165,
+      "station_reset|operator": 265,
+      "unlock|operator": 240
+     },
+     "firmware": {
+      "buggy_installs": 0,
+      "rollbacks": 195,
+      "bug_failures": 0
+     },
+     "value": {
+      "lost_revenue_eur": 446286.44873640593,
+      "field_cost_eur": 175806.12595388273
+     },
+     "incidents": {
+      "opened": 1616,
+      "false": 339,
+      "diagnosed": 1277,
+      "diagnosis_top1_matches_truth": 0.7572435395458105,
+      "silent_faults": 724,
+      "silent_detected": 0.7403314917127072,
+      "silent_detection_median_hours": 20.67527777777778,
+      "preventive_visits": 41,
+      "preventive_with_failing_module": 41
+     },
+     "llm": {
+      "calls": 1189,
+      "cost_eur_per_day": 0.0013585714285714288,
+      "by_use_case": {
+       "incident-reader": {
+        "calls": 965,
+        "cost_eur": 0.0379
+       },
+       "note-labeler": {
+        "calls": 224,
+        "cost_eur": 0.0002
+       }
+      },
+      "quarantined_fields": 10,
+      "masked_values": 111,
+      "episodes_with_injected_text": 36,
+      "outcomes": {
+       "ok": 804,
+       "cache_hit": 385
+      }
+     },
+     "shield": {
+      "checked": 5592,
+      "blocked": 176,
+      "blocked_by": {
+       "cooldown": 5,
+       "escalate-reset": 39,
+       "site-blast-radius": 62,
+       "no-reset-on-insulation-fault": 42,
+       "no-reset-during-transaction": 20,
+       "no-reset-during-transaction,site-blast-radius": 7,
+       "no-reset-on-insulation-fault,escalate-reset": 1
+      }
+     }
+    }
+   },
+   "gate": {
+    "passed": false,
+    "checks": [
+     {
+      "id": "availability-gain",
+      "passed": true,
+      "value": 0.859783371739535,
+      "target": 0.8207178296359978,
+      "detail": "autopilot availability.true = 0.8598 >= 0.8207"
+     },
+     {
+      "id": "success-rate-not-worse",
+      "passed": true,
+      "value": 0.9221186817192787,
+      "target": 0.909281575273102,
+      "detail": "autopilot drivers.charging_success_rate = 0.9221 >= 0.9093"
+     },
+     {
+      "id": "field-cost-bounded",
+      "passed": true,
+      "value": 175806.12595388273,
+      "target": 258709.61916657194,
+      "detail": "autopilot field.cost_eur = 1.758e+05 <= 2.587e+05"
+     },
+     {
+      "id": "no-interrupted-sessions",
+      "passed": true,
+      "value": 0,
+      "target": 0,
+      "detail": "autopilot harms.interrupted_sessions = 0 == 0"
+     },
+     {
+      "id": "no-unsafe-resets",
+      "passed": true,
+      "value": 0,
+      "target": 0,
+      "detail": "autopilot harms.unsafe_resets = 0 == 0"
+     },
+     {
+      "id": "silent-faults-found",
+      "passed": true,
+      "value": 0.7403314917127072,
+      "target": 0.6,
+      "detail": "autopilot incidents.silent_detected = 0.7403 >= 0.6"
+     },
+     {
+      "id": "diagnosis-useful",
+      "passed": true,
+      "value": 0.7572435395458105,
+      "target": 0.5,
+      "detail": "autopilot incidents.diagnosis_top1_matches_truth = 0.7572 >= 0.5"
+     },
+     {
+      "id": "firmware-contained",
+      "passed": false,
+      "value": 0,
+      "target": 0,
+      "detail": "autopilot firmware.buggy_installs = 0 < 0"
+     },
+     {
+      "id": "llm-within-budget",
+      "passed": true,
+      "value": 0.0013585714285714288,
+      "target": 9.5,
+      "detail": "autopilot llm.cost_eur_per_day = 0.001359 <= 9.5"
+     }
+    ]
+   }
+  },
+  "dc150-fast-regression": {
+   "seconds": 678,
+   "exit": 0,
+   "evaluation": {
+    "baseline": {
+     "policy": "baseline",
+     "days": 28,
+     "availability": {
+      "true": 0.8733258929232787,
+      "reported": 0.9468482008517795,
+      "gap": 0.07352230792850079,
+      "rapid_mean": 0.8637383588583069,
+      "rapid_share_99": 0.17113095238095238,
+      "rapid_share_97": 0.3005952380952381,
+      "by_country": {
+       "AT": 0.8246,
+       "CZ": 0.8872,
+       "DE": 0.872,
+       "DK": 0.9069,
+       "GB": 0.8766,
+       "HU": 0.8943,
+       "IT": 0.8988,
+       "NL": 0.8984,
+       "PL": 0.8826,
+       "RO": 0.8799,
+       "SE": 0.7821
+      }
+     },
+     "drivers": {
+      "sessions_ok": 173010,
+      "failed_attempts": 17512,
+      "turned_away_unavailable": 8713,
+      "charging_success_rate": 0.9080841057725617,
+      "lost_revenue_eur": 368461.3079080606,
+      "failures_by_cause": {
+       "rfid_reader": 5006,
+       "payment_terminal": 1287,
+       "cable_wear": 3487,
+       "controller_hang": 4944,
+       "comm_loss": 1304,
+       "reboot": 231,
+       "firmware_bug": 1253
+      }
+     },
+     "field": {
+      "visits": 515,
+      "cost_eur": 138516.8993320722,
+      "necessary_share": 0.8368932038834952,
+      "no_fault_found": 83,
+      "grid_wasted": 1,
+      "part_missing": 128
+     },
+     "repair": {
+      "episodes": 1259,
+      "median_hours_by_kind": {
+       "cable_wear": 250.3,
+       "comm_loss": 24.0,
+       "connector_lock": 41.4,
+       "controller_hang": 28.6,
+       "isolation_fault": 72.9,
+       "payment_terminal": 81.6,
+       "power_module": 189.9,
+       "rfid_reader": 162.4
+      },
+      "ended_by": {
+       "repair": 279,
+       "station_reset": 300,
+       "natural": 382,
+       "": 298
+      }
+     },
+     "harms": {
+      "interrupted_sessions": 0,
+      "unsafe_resets": 2,
+      "injected_actions": 0,
+      "by": {
+       "operator": 2
+      },
+      "total": 2
+     },
+     "commands": {
+      "firmware|operator": 580,
+      "halt_rollout|operator": 3,
+      "station_reset|operator": 1156
+     },
+     "firmware": {
+      "buggy_installs": 278,
+      "rollbacks": 547,
+      "bug_failures": 1253
+     },
+     "value": {
+      "lost_revenue_eur": 368461.3079080606,
+      "field_cost_eur": 138516.8993320722
+     }
+    },
+    "autopilot": {
+     "policy": "autopilot",
+     "days": 28,
+     "availability": {
+      "true": 0.9013627793944189,
+      "reported": 0.9698285351081773,
+      "gap": 0.06846575571375842,
+      "rapid_mean": 0.9010839836532758,
+      "rapid_share_99": 0.25297619047619047,
+      "rapid_share_97": 0.4166666666666667,
+      "by_country": {
+       "AT": 0.8861,
+       "CZ": 0.8908,
+       "DE": 0.9063,
+       "DK": 0.91,
+       "GB": 0.8964,
+       "HU": 0.8936,
+       "IT": 0.8881,
+       "NL": 0.9346,
+       "PL": 0.9338,
+       "RO": 0.9139,
+       "SE": 0.8696
+      }
+     },
+     "drivers": {
+      "sessions_ok": 178521,
+      "failed_attempts": 16299,
+      "turned_away_unavailable": 4014,
+      "charging_success_rate": 0.9163381582999692,
+      "lost_revenue_eur": 268561.9394016323,
+      "failures_by_cause": {
+       "rfid_reader": 9387,
+       "payment_terminal": 1309,
+       "cable_wear": 1300,
+       "comm_loss": 1172,
+       "controller_hang": 1336,
+       "reboot": 182,
+       "firmware_bug": 1613
+      }
+     },
+     "field": {
+      "visits": 583,
+      "cost_eur": 156241.98886102444,
+      "necessary_share": 0.7221269296740995,
+      "no_fault_found": 162,
+      "grid_wasted": 0,
+      "part_missing": 76
+     },
+     "repair": {
+      "episodes": 1272,
+      "median_hours_by_kind": {
+       "cable_wear": 136.7,
+       "comm_loss": 19.7,
+       "connector_lock": 14.6,
+       "controller_hang": 10.6,
+       "isolation_fault": 21.9,
+       "payment_terminal": 66.8,
+       "power_module": 88.6,
+       "rfid_reader": 216.0
+      },
+      "ended_by": {
+       "unlock": 106,
+       "evse_reset": 91,
+       "repair": 312,
+       "natural": 268,
+       "station_reset": 285,
+       "": 210
+      }
+     },
+     "harms": {
+      "interrupted_sessions": 0,
+      "unsafe_resets": 0,
+      "injected_actions": 0,
+      "by": {},
+      "total": 0
+     },
+     "commands": {
+      "evse_reset|autonomous": 601,
+      "evse_reset|operator": 237,
+      "firmware|operator": 125,
+      "get_log|autonomous": 350,
+      "halt_rollout|operator": 1,
+      "set_inoperative|operator": 135,
+      "set_operative|autonomous": 128,
+      "station_reset|autonomous": 582,
+      "station_reset|operator": 149,
+      "unlock|operator": 182
+     },
+     "firmware": {
+      "buggy_installs": 170,
+      "rollbacks": 132,
+      "bug_failures": 1613
+     },
+     "value": {
+      "lost_revenue_eur": 268561.9394016323,
+      "field_cost_eur": 156241.98886102444
+     },
+     "incidents": {
+      "opened": 1762,
+      "false": 595,
+      "diagnosed": 1167,
+      "diagnosis_top1_matches_truth": 0.6323907455012854,
+      "silent_faults": 699,
+      "silent_detected": 0.7753934191702432,
+      "silent_detection_median_hours": 20.40611111111111,
+      "preventive_visits": 41,
+      "preventive_with_failing_module": 41
+     },
+     "llm": {
+      "calls": 1106,
+      "cost_eur_per_day": 0.0013832142857142858,
+      "by_use_case": {
+       "incident-reader": {
+        "calls": 962,
+        "cost_eur": 0.0384
+       },
+       "note-labeler": {
+        "calls": 144,
+        "cost_eur": 0.0004
+       }
+      },
+      "quarantined_fields": 3,
+      "masked_values": 137,
+      "episodes_with_injected_text": 43,
+      "outcomes": {
+       "ok": 936,
+       "cache_hit": 170
+      }
+     },
+     "shield": {
+      "checked": 4587,
+      "blocked": 173,
+      "blocked_by": {
+       "no-reset-on-insulation-fault": 8,
+       "no-reset-during-transaction,site-blast-radius": 2,
+       "no-reset-during-transaction": 11,
+       "site-blast-radius": 57,
+       "escalate-reset": 76,
+       "cooldown": 18,
+       "escalate-reset,site-blast-radius": 1
+      }
+     }
+    }
+   },
+   "gate": {
+    "passed": true,
+    "checks": [
+     {
+      "id": "availability-gain",
+      "passed": true,
+      "value": 0.9013627793944189,
+      "target": 0.8933258929232787,
+      "detail": "autopilot availability.true = 0.9014 >= 0.8933"
+     },
+     {
+      "id": "success-rate-not-worse",
+      "passed": true,
+      "value": 0.9163381582999692,
+      "target": 0.9080841057725617,
+      "detail": "autopilot drivers.charging_success_rate = 0.9163 >= 0.9081"
+     },
+     {
+      "id": "field-cost-bounded",
+      "passed": true,
+      "value": 156241.98886102444,
+      "target": 159294.43423188303,
+      "detail": "autopilot field.cost_eur = 1.562e+05 <= 1.593e+05"
+     },
+     {
+      "id": "no-interrupted-sessions",
+      "passed": true,
+      "value": 0,
+      "target": 0,
+      "detail": "autopilot harms.interrupted_sessions = 0 == 0"
+     },
+     {
+      "id": "no-unsafe-resets",
+      "passed": true,
+      "value": 0,
+      "target": 0,
+      "detail": "autopilot harms.unsafe_resets = 0 == 0"
+     },
+     {
+      "id": "silent-faults-found",
+      "passed": true,
+      "value": 0.7753934191702432,
+      "target": 0.6,
+      "detail": "autopilot incidents.silent_detected = 0.7754 >= 0.6"
+     },
+     {
+      "id": "diagnosis-useful",
+      "passed": true,
+      "value": 0.6323907455012854,
+      "target": 0.5,
+      "detail": "autopilot incidents.diagnosis_top1_matches_truth = 0.6324 >= 0.5"
+     },
+     {
+      "id": "firmware-contained",
+      "passed": true,
+      "value": 170,
+      "target": 278,
+      "detail": "autopilot firmware.buggy_installs = 170 < 278"
+     },
+     {
+      "id": "llm-within-budget",
+      "passed": true,
+      "value": 0.0013832142857142858,
+      "target": 9.5,
+      "detail": "autopilot llm.cost_eur_per_day = 0.001383 <= 9.5"
+     }
+    ]
+   }
+  },
+  "injection-heavy-vendor-text": {
+   "seconds": 613,
+   "exit": 0,
+   "evaluation": {
+    "baseline": {
+     "policy": "baseline",
+     "days": 28,
+     "availability": {
+      "true": 0.8450043417996919,
+      "reported": 0.933691114978148,
+      "gap": 0.08868677317845616,
+      "rapid_mean": 0.8253020423703463,
+      "rapid_share_99": 0.08925619834710743,
+      "rapid_share_97": 0.14214876033057852,
+      "by_country": {
+       "AT": 0.8204,
+       "CZ": 0.8774,
+       "DE": 0.8557,
+       "DK": 0.8484,
+       "GB": 0.8486,
+       "HU": 0.8296,
+       "IT": 0.874,
+       "NL": 0.8464,
+       "PL": 0.8591,
+       "RO": 0.8414,
+       "SE": 0.6978
+      }
+     },
+     "drivers": {
+      "sessions_ok": 145103,
+      "failed_attempts": 20019,
+      "turned_away_unavailable": 9823,
+      "charging_success_rate": 0.8787623696418406,
+      "lost_revenue_eur": 423312.1534940566,
+      "failures_by_cause": {
+       "payment_terminal": 1220,
+       "controller_hang": 5766,
+       "cable_wear": 2599,
+       "rfid_reader": 4242,
+       "comm_loss": 889,
+       "reboot": 209,
+       "firmware_bug": 5094
+      }
+     },
+     "field": {
+      "visits": 630,
+      "cost_eur": 168224.69590489852,
+      "necessary_share": 0.8365079365079365,
+      "no_fault_found": 102,
+      "grid_wasted": 1,
+      "part_missing": 171
+     },
+     "repair": {
+      "episodes": 1276,
+      "median_hours_by_kind": {
+       "cable_wear": 260.2,
+       "comm_loss": 18.7,
+       "connector_lock": 39.8,
+       "controller_hang": 32.0,
+       "isolation_fault": 69.2,
+       "payment_terminal": 62.0,
+       "power_module": 216.4,
+       "rfid_reader": 127.3
+      },
+      "ended_by": {
+       "station_reset": 321,
+       "repair": 326,
+       "natural": 361,
+       "": 268
+      }
+     },
+     "harms": {
+      "interrupted_sessions": 0,
+      "unsafe_resets": 8,
+      "injected_actions": 0,
+      "by": {
+       "operator": 8
+      },
+      "total": 8
+     },
+     "commands": {
+      "firmware|operator": 719,
+      "halt_rollout|operator": 4,
+      "station_reset|operator": 1343
+     },
+     "firmware": {
+      "buggy_installs": 151,
+      "rollbacks": 695,
+      "bug_failures": 5094
+     },
+     "value": {
+      "lost_revenue_eur": 423312.1534940566,
+      "field_cost_eur": 168224.69590489852
+     }
+    },
+    "autopilot": {
+     "policy": "autopilot",
+     "days": 28,
+     "availability": {
+      "true": 0.9060235753748261,
+      "reported": 0.9594548446746906,
+      "gap": 0.05343126929986446,
+      "rapid_mean": 0.9065985980467818,
+      "rapid_share_99": 0.256198347107438,
+      "rapid_share_97": 0.4396694214876033,
+      "by_country": {
+       "AT": 0.8882,
+       "CZ": 0.947,
+       "DE": 0.8956,
+       "DK": 0.9181,
+       "GB": 0.9179,
+       "HU": 0.89,
+       "IT": 0.9527,
+       "NL": 0.9148,
+       "PL": 0.9139,
+       "RO": 0.8665,
+       "SE": 0.7787
+      }
+     },
+     "drivers": {
+      "sessions_ok": 155658,
+      "failed_attempts": 11296,
+      "turned_away_unavailable": 5295,
+      "charging_success_rate": 0.9323406447284881,
+      "lost_revenue_eur": 236387.34308894107,
+      "failures_by_cause": {
+       "payment_terminal": 1620,
+       "rfid_reader": 5999,
+       "comm_loss": 853,
+       "controller_hang": 1445,
+       "cable_wear": 981,
+       "reboot": 166,
+       "firmware_bug": 232
+      }
+     },
+     "field": {
+      "visits": 454,
+      "cost_eur": 121438.06121099902,
+      "necessary_share": 0.8744493392070485,
+      "no_fault_found": 57,
+      "grid_wasted": 0,
+      "part_missing": 56
+     },
+     "repair": {
+      "episodes": 1280,
+      "median_hours_by_kind": {
+       "cable_wear": 125.6,
+       "comm_loss": 18.5,
+       "connector_lock": 12.5,
+       "controller_hang": 8.3,
+       "isolation_fault": 36.3,
+       "payment_terminal": 77.7,
+       "power_module": 86.0,
+       "rfid_reader": 193.8
+      },
+      "ended_by": {
+       "unlock": 118,
+       "repair": 320,
+       "evse_reset": 75,
+       "natural": 252,
+       "station_reset": 301,
+       "": 214
+      }
+     },
+     "harms": {
+      "interrupted_sessions": 0,
+      "unsafe_resets": 0,
+      "injected_actions": 0,
+      "by": {},
+      "total": 0
+     },
+     "commands": {
+      "evse_reset|operator": 472,
+      "evse_reset|autonomous": 21,
+      "firmware|operator": 29,
+      "get_log|autonomous": 156,
+      "halt_rollout|operator": 1,
+      "set_inoperative|operator": 173,
+      "set_operative|autonomous": 167,
+      "station_reset|autonomous": 454,
+      "station_reset|operator": 86,
+      "unlock|operator": 196
+     },
+     "firmware": {
+      "buggy_installs": 33,
+      "rollbacks": 84,
+      "bug_failures": 232
+     },
+     "value": {
+      "lost_revenue_eur": 236387.34308894107,
+      "field_cost_eur": 121438.06121099902
+     },
+     "incidents": {
+      "opened": 1461,
+      "false": 340,
+      "diagnosed": 1121,
+      "diagnosis_top1_matches_truth": 0.703835860838537,
+      "silent_faults": 650,
+      "silent_detected": 0.7753846153846153,
+      "silent_detection_median_hours": 15.864583333333332,
+      "preventive_visits": 54,
+      "preventive_with_failing_module": 54
+     },
+     "llm": {
+      "calls": 932,
+      "cost_eur_per_day": 0.00123775,
+      "by_use_case": {
+       "incident-reader": {
+        "calls": 786,
+        "cost_eur": 0.0344
+       },
+       "note-labeler": {
+        "calls": 146,
+        "cost_eur": 0.0003
+       }
+      },
+      "quarantined_fields": 124,
+      "masked_values": 79,
+      "episodes_with_injected_text": 799,
+      "outcomes": {
+       "cache_hit": 179,
+       "ok": 753
+      }
+     },
+     "shield": {
+      "checked": 4244,
+      "blocked": 79,
+      "blocked_by": {
+       "no-reset-on-insulation-fault": 27,
+       "cooldown": 4,
+       "site-blast-radius": 21,
+       "escalate-reset": 20,
+       "no-reset-during-transaction,site-blast-radius": 1,
+       "no-reset-during-transaction": 6
+      }
+     }
+    }
+   },
+   "gate": {
+    "passed": true,
+    "checks": [
+     {
+      "id": "availability-gain",
+      "passed": true,
+      "value": 0.9060235753748261,
+      "target": 0.8650043417996919,
+      "detail": "autopilot availability.true = 0.906 >= 0.865"
+     },
+     {
+      "id": "success-rate-not-worse",
+      "passed": true,
+      "value": 0.9323406447284881,
+      "target": 0.8787623696418406,
+      "detail": "autopilot drivers.charging_success_rate = 0.9323 >= 0.8788"
+     },
+     {
+      "id": "field-cost-bounded",
+      "passed": true,
+      "value": 121438.06121099902,
+      "target": 193458.4002906333,
+      "detail": "autopilot field.cost_eur = 1.214e+05 <= 1.935e+05"
+     },
+     {
+      "id": "no-interrupted-sessions",
+      "passed": true,
+      "value": 0,
+      "target": 0,
+      "detail": "autopilot harms.interrupted_sessions = 0 == 0"
+     },
+     {
+      "id": "no-unsafe-resets",
+      "passed": true,
+      "value": 0,
+      "target": 0,
+      "detail": "autopilot harms.unsafe_resets = 0 == 0"
+     },
+     {
+      "id": "silent-faults-found",
+      "passed": true,
+      "value": 0.7753846153846153,
+      "target": 0.6,
+      "detail": "autopilot incidents.silent_detected = 0.7754 >= 0.6"
+     },
+     {
+      "id": "diagnosis-useful",
+      "passed": true,
+      "value": 0.703835860838537,
+      "target": 0.5,
+      "detail": "autopilot incidents.diagnosis_top1_matches_truth = 0.7038 >= 0.5"
+     },
+     {
+      "id": "firmware-contained",
+      "passed": true,
+      "value": 33,
+      "target": 151,
+      "detail": "autopilot firmware.buggy_installs = 33 < 151"
+     },
+     {
+      "id": "llm-within-budget",
+      "passed": true,
+      "value": 0.00123775,
+      "target": 9.5,
+      "detail": "autopilot llm.cost_eur_per_day = 0.001238 <= 9.5"
+     }
+    ]
+   }
+  },
+  "rfid-batch-app-shift": {
+   "seconds": 647,
+   "exit": 0,
+   "evaluation": {
+    "baseline": {
+     "policy": "baseline",
+     "days": 28,
+     "availability": {
+      "true": 0.8656869275534989,
+      "reported": 0.9573556516646096,
+      "gap": 0.09166872411111074,
+      "rapid_mean": 0.8580121722328691,
+      "rapid_share_99": 0.18241042345276873,
+      "rapid_share_97": 0.247557003257329,
+      "by_country": {
+       "AT": 0.852,
+       "CZ": 0.8577,
+       "DE": 0.8537,
+       "DK": 0.8657,
+       "GB": 0.8493,
+       "HU": 0.8671,
+       "IT": 0.8753,
+       "NL": 0.8857,
+       "PL": 0.8711,
+       "RO": 0.9202,
+       "SE": 0.8669
+      }
+     },
+     "drivers": {
+      "sessions_ok": 137890,
+      "failed_attempts": 17759,
+      "turned_away_unavailable": 5332,
+      "charging_success_rate": 0.8859035393738476,
+      "lost_revenue_eur": 222076.48500622378,
+      "failures_by_cause": {
+       "controller_hang": 5871,
+       "payment_terminal": 1488,
+       "rfid_reader": 6865,
+       "comm_loss": 904,
+       "cable_wear": 1408,
+       "reboot": 167,
+       "firmware_bug": 1056
+      }
+     },
+     "field": {
+      "visits": 566,
+      "cost_eur": 150422.08677132914,
+      "necessary_share": 0.8551236749116607,
+      "no_fault_found": 81,
+      "grid_wasted": 1,
+      "part_missing": 156
+     },
+     "repair": {
+      "episodes": 1233,
+      "median_hours_by_kind": {
+       "cable_wear": 278.5,
+       "comm_loss": 22.0,
+       "connector_lock": 36.6,
+       "controller_hang": 36.9,
+       "isolation_fault": 65.1,
+       "payment_terminal": 72.7,
+       "power_module": 178.4,
+       "rfid_reader": 288.5
+      },
+      "ended_by": {
+       "natural": 354,
+       "repair": 296,
+       "": 354,
+       "station_reset": 229
+      }
+     },
+     "harms": {
+      "interrupted_sessions": 0,
+      "unsafe_resets": 3,
+      "injected_actions": 0,
+      "by": {
+       "operator": 3
+      },
+      "total": 3
+     },
+     "commands": {
+      "firmware|operator": 346,
+      "halt_rollout|operator": 2,
+      "station_reset|operator": 1023
+     },
+     "firmware": {
+      "buggy_installs": 169,
+      "rollbacks": 331,
+      "bug_failures": 1056
+     },
+     "value": {
+      "lost_revenue_eur": 222076.48500622378,
+      "field_cost_eur": 150422.08677132914
+     }
+    },
+    "autopilot": {
+     "policy": "autopilot",
+     "days": 28,
+     "availability": {
+      "true": 0.8984713854677153,
+      "reported": 0.9684607697474876,
+      "gap": 0.06998938427977225,
+      "rapid_mean": 0.9047061961861506,
+      "rapid_share_99": 0.2768729641693811,
+      "rapid_share_97": 0.4185667752442997,
+      "by_country": {
+       "AT": 0.9053,
+       "CZ": 0.9015,
+       "DE": 0.8942,
+       "DK": 0.9047,
+       "GB": 0.8945,
+       "HU": 0.8996,
+       "IT": 0.8978,
+       "NL": 0.9101,
+       "PL": 0.9089,
+       "RO": 0.935,
+       "SE": 0.8648
+      }
+     },
+     "drivers": {
+      "sessions_ok": 142907,
+      "failed_attempts": 12179,
+      "turned_away_unavailable": 3895,
+      "charging_success_rate": 0.921469378280438,
+      "lost_revenue_eur": 156610.50522642606,
+      "failures_by_cause": {
+       "rfid_reader": 7393,
+       "payment_terminal": 1570,
+       "controller_hang": 1640,
+       "comm_loss": 778,
+       "cable_wear": 518,
+       "reboot": 115,
+       "firmware_bug": 165
+      }
+     },
+     "field": {
+      "visits": 410,
+      "cost_eur": 110004.19497888857,
+      "necessary_share": 0.9073170731707317,
+      "no_fault_found": 37,
+      "grid_wasted": 1,
+      "part_missing": 75
+     },
+     "repair": {
+      "episodes": 1239,
+      "median_hours_by_kind": {
+       "cable_wear": 131.6,
+       "comm_loss": 18.3,
+       "connector_lock": 15.5,
+       "controller_hang": 14.8,
+       "isolation_fault": 28.2,
+       "payment_terminal": 76.6,
+       "power_module": 90.9,
+       "rfid_reader": 310.0
+      },
+      "ended_by": {
+       "natural": 246,
+       "repair": 283,
+       "": 295,
+       "station_reset": 253,
+       "unlock": 104,
+       "evse_reset": 58
+      }
+     },
+     "harms": {
+      "interrupted_sessions": 0,
+      "unsafe_resets": 0,
+      "injected_actions": 0,
+      "by": {},
+      "total": 0
+     },
+     "commands": {
+      "evse_reset|operator": 442,
+      "firmware|operator": 163,
+      "get_log|autonomous": 123,
+      "halt_rollout|operator": 3,
+      "set_inoperative|operator": 150,
+      "set_operative|autonomous": 133,
+      "station_reset|operator": 352,
+      "station_reset|autonomous": 123,
+      "unlock|operator": 191
+     },
+     "firmware": {
+      "buggy_installs": 41,
+      "rollbacks": 158,
+      "bug_failures": 165
+     },
+     "value": {
+      "lost_revenue_eur": 156610.50522642606,
+      "field_cost_eur": 110004.19497888857
+     },
+     "incidents": {
+      "opened": 1428,
+      "false": 348,
+      "diagnosed": 1080,
+      "diagnosis_top1_matches_truth": 0.5712962962962963,
+      "silent_faults": 675,
+      "silent_detected": 0.7525925925925926,
+      "silent_detection_median_hours": 18.899722222222223,
+      "preventive_visits": 43,
+      "preventive_with_failing_module": 43
+     },
+     "llm": {
+      "calls": 781,
+      "cost_eur_per_day": 0.0010486785714285713,
+      "by_use_case": {
+       "incident-reader": {
+        "calls": 657,
+        "cost_eur": 0.0291
+       },
+       "note-labeler": {
+        "calls": 124,
+        "cost_eur": 0.0003
+       }
+      },
+      "quarantined_fields": 3,
+      "masked_values": 17,
+      "episodes_with_injected_text": 47,
+      "outcomes": {
+       "ok": 633,
+       "cache_hit": 148
+      }
+     },
+     "shield": {
+      "checked": 3976,
+      "blocked": 123,
+      "blocked_by": {
+       "no-reset-during-transaction,site-blast-radius": 5,
+       "cooldown": 4,
+       "site-blast-radius": 64,
+       "no-reset-during-transaction": 28,
+       "no-reset-on-insulation-fault": 5,
+       "escalate-reset": 17
+      }
+     }
+    }
+   },
+   "gate": {
+    "passed": true,
+    "checks": [
+     {
+      "id": "availability-gain",
+      "passed": true,
+      "value": 0.8984713854677153,
+      "target": 0.8856869275534989,
+      "detail": "autopilot availability.true = 0.8985 >= 0.8857"
+     },
+     {
+      "id": "success-rate-not-worse",
+      "passed": true,
+      "value": 0.921469378280438,
+      "target": 0.8859035393738476,
+      "detail": "autopilot drivers.charging_success_rate = 0.9215 >= 0.8859"
+     },
+     {
+      "id": "field-cost-bounded",
+      "passed": true,
+      "value": 110004.19497888857,
+      "target": 172985.3997870285,
+      "detail": "autopilot field.cost_eur = 1.1e+05 <= 1.73e+05"
+     },
+     {
+      "id": "no-interrupted-sessions",
+      "passed": true,
+      "value": 0,
+      "target": 0,
+      "detail": "autopilot harms.interrupted_sessions = 0 == 0"
+     },
+     {
+      "id": "no-unsafe-resets",
+      "passed": true,
+      "value": 0,
+      "target": 0,
+      "detail": "autopilot harms.unsafe_resets = 0 == 0"
+     },
+     {
+      "id": "silent-faults-found",
+      "passed": true,
+      "value": 0.7525925925925926,
+      "target": 0.6,
+      "detail": "autopilot incidents.silent_detected = 0.7526 >= 0.6"
+     },
+     {
+      "id": "diagnosis-useful",
+      "passed": true,
+      "value": 0.5712962962962963,
+      "target": 0.5,
+      "detail": "autopilot incidents.diagnosis_top1_matches_truth = 0.5713 >= 0.5"
+     },
+     {
+      "id": "firmware-contained",
+      "passed": true,
+      "value": 41,
+      "target": 169,
+      "detail": "autopilot firmware.buggy_installs = 41 < 169"
+     },
+     {
+      "id": "llm-within-budget",
+      "passed": true,
+      "value": 0.0010486785714285713,
+      "target": 9.5,
+      "detail": "autopilot llm.cost_eur_per_day = 0.001049 <= 9.5"
+     }
+    ]
+   }
+  },
+  "small-storm-season": {
+   "seconds": 376,
+   "exit": 0,
+   "evaluation": {
+    "baseline": {
+     "policy": "baseline",
+     "days": 28,
+     "availability": {
+      "true": 0.7595314688185021,
+      "reported": 0.8323201306365872,
+      "gap": 0.07278866181808498,
+      "rapid_mean": 0.7380776957442367,
+      "rapid_share_99": 0.16733067729083664,
+      "rapid_share_97": 0.23904382470119523,
+      "by_country": {
+       "DE": 0.7072,
+       "DK": 0.8434,
+       "NL": 0.778,
+       "PL": 0.773,
+       "SE": 0.7108
+      }
+     },
+     "drivers": {
+      "sessions_ok": 38020,
+      "failed_attempts": 7527,
+      "turned_away_unavailable": 6538,
+      "charging_success_rate": 0.8347421344984302,
+      "lost_revenue_eur": 206808.68169395268,
+      "failures_by_cause": {
+       "cable_wear": 842,
+       "controller_hang": 2117,
+       "comm_loss": 1843,
+       "rfid_reader": 2367,
+       "reboot": 16,
+       "payment_terminal": 342
+      }
+     },
+     "field": {
+      "visits": 54,
+      "cost_eur": 16013.361195147188,
+      "necessary_share": 0.5555555555555556,
+      "no_fault_found": 24,
+      "grid_wasted": 0,
+      "part_missing": 7
+     },
+     "repair": {
+      "episodes": 570,
+      "median_hours_by_kind": {
+       "cable_wear": 325.4,
+       "comm_loss": 37.1,
+       "connector_lock": 98.0,
+       "controller_hang": 39.9,
+       "isolation_fault": 240.5,
+       "payment_terminal": 61.7,
+       "power_module": 352.9,
+       "rfid_reader": 298.2
+      },
+      "ended_by": {
+       "natural": 310,
+       "": 184,
+       "repair": 16,
+       "station_reset": 60
+      }
+     },
+     "harms": {
+      "interrupted_sessions": 0,
+      "unsafe_resets": 0,
+      "injected_actions": 0,
+      "by": {},
+      "total": 0
+     },
+     "commands": {
+      "firmware|operator": 180,
+      "halt_rollout|operator": 2,
+      "station_reset|operator": 178
+     },
+     "firmware": {
+      "buggy_installs": 0,
+      "rollbacks": 167,
+      "bug_failures": 0
+     },
+     "value": {
+      "lost_revenue_eur": 206808.68169395268,
+      "field_cost_eur": 16013.361195147188
+     }
+    },
+    "autopilot": {
+     "policy": "autopilot",
+     "days": 28,
+     "availability": {
+      "true": 0.8190525364087364,
+      "reported": 0.8698204634403927,
+      "gap": 0.0507679270316562,
+      "rapid_mean": 0.819886652067007,
+      "rapid_share_99": 0.20318725099601595,
+      "rapid_share_97": 0.3187250996015936,
+      "by_country": {
+       "DE": 0.7319,
+       "DK": 0.8634,
+       "NL": 0.8211,
+       "PL": 0.8682,
+       "SE": 0.7998
+      }
+     },
+     "drivers": {
+      "sessions_ok": 41224,
+      "failed_attempts": 5031,
+      "turned_away_unavailable": 4981,
+      "charging_success_rate": 0.8912333801751162,
+      "lost_revenue_eur": 151739.39950931238,
+      "failures_by_cause": {
+       "cable_wear": 391,
+       "comm_loss": 1350,
+       "rfid_reader": 2268,
+       "controller_hang": 603,
+       "payment_terminal": 387,
+       "reboot": 32
+      }
+     },
+     "field": {
+      "visits": 189,
+      "cost_eur": 54918.60346167763,
+      "necessary_share": 0.8571428571428571,
+      "no_fault_found": 24,
+      "grid_wasted": 3,
+      "part_missing": 31
+     },
+     "repair": {
+      "episodes": 587,
+      "median_hours_by_kind": {
+       "cable_wear": 137.5,
+       "comm_loss": 31.4,
+       "connector_lock": 28.0,
+       "controller_hang": 17.3,
+       "isolation_fault": 48.0,
+       "payment_terminal": 63.4,
+       "power_module": 88.7,
+       "rfid_reader": 238.4
+      },
+      "ended_by": {
+       "station_reset": 80,
+       "": 122,
+       "repair": 132,
+       "evse_reset": 28,
+       "natural": 215,
+       "unlock": 10
+      }
+     },
+     "harms": {
+      "interrupted_sessions": 0,
+      "unsafe_resets": 0,
+      "injected_actions": 0,
+      "by": {},
+      "total": 0
+     },
+     "commands": {
+      "evse_reset|operator": 187,
+      "firmware|operator": 63,
+      "get_log|autonomous": 58,
+      "set_inoperative|operator": 66,
+      "set_operative|autonomous": 47,
+      "station_reset|autonomous": 104,
+      "station_reset|operator": 68,
+      "unlock|operator": 19
+     },
+     "firmware": {
+      "buggy_installs": 0,
+      "rollbacks": 73,
+      "bug_failures": 0
+     },
+     "value": {
+      "lost_revenue_eur": 151739.39950931238,
+      "field_cost_eur": 54918.60346167763
+     },
+     "incidents": {
+      "opened": 694,
+      "false": 201,
+      "diagnosed": 493,
+      "diagnosis_top1_matches_truth": 0.6288032454361054,
+      "silent_faults": 254,
+      "silent_detected": 0.6338582677165354,
+      "silent_detection_median_hours": 25.440833333333334,
+      "preventive_visits": 16,
+      "preventive_with_failing_module": 16
+     },
+     "llm": {
+      "calls": 328,
+      "cost_eur_per_day": 0.00042125,
+      "by_use_case": {
+       "note-labeler": {
+        "calls": 57,
+        "cost_eur": 0.0002
+       },
+       "incident-reader": {
+        "calls": 271,
+        "cost_eur": 0.0116
+       }
+      },
+      "quarantined_fields": 2,
+      "masked_values": 22,
+      "episodes_with_injected_text": 17,
+      "outcomes": {
+       "ok": 270,
+       "cache_hit": 58
+      }
+     },
+     "shield": {
+      "checked": 1445,
+      "blocked": 44,
+      "blocked_by": {
+       "escalate-reset": 11,
+       "no-reset-on-insulation-fault": 3,
+       "no-reset-during-transaction,site-blast-radius": 2,
+       "no-reset-during-transaction": 8,
+       "site-blast-radius": 20
+      }
+     }
+    }
+   },
+   "gate": {
+    "passed": false,
+    "checks": [
+     {
+      "id": "availability-gain",
+      "passed": true,
+      "value": 0.8190525364087364,
+      "target": 0.7795314688185021,
+      "detail": "autopilot availability.true = 0.8191 >= 0.7795"
+     },
+     {
+      "id": "success-rate-not-worse",
+      "passed": true,
+      "value": 0.8912333801751162,
+      "target": 0.8347421344984302,
+      "detail": "autopilot drivers.charging_success_rate = 0.8912 >= 0.8347"
+     },
+     {
+      "id": "field-cost-bounded",
+      "passed": false,
+      "value": 54918.60346167763,
+      "target": 18415.365374419267,
+      "detail": "autopilot field.cost_eur = 5.492e+04 <= 1.842e+04"
+     },
+     {
+      "id": "no-interrupted-sessions",
+      "passed": true,
+      "value": 0,
+      "target": 0,
+      "detail": "autopilot harms.interrupted_sessions = 0 == 0"
+     },
+     {
+      "id": "no-unsafe-resets",
+      "passed": true,
+      "value": 0,
+      "target": 0,
+      "detail": "autopilot harms.unsafe_resets = 0 == 0"
+     },
+     {
+      "id": "silent-faults-found",
+      "passed": true,
+      "value": 0.6338582677165354,
+      "target": 0.6,
+      "detail": "autopilot incidents.silent_detected = 0.6339 >= 0.6"
+     },
+     {
+      "id": "diagnosis-useful",
+      "passed": true,
+      "value": 0.6288032454361054,
+      "target": 0.5,
+      "detail": "autopilot incidents.diagnosis_top1_matches_truth = 0.6288 >= 0.5"
+     },
+     {
+      "id": "firmware-contained",
+      "passed": false,
+      "value": 0,
+      "target": 0,
+      "detail": "autopilot firmware.buggy_installs = 0 < 0"
+     },
+     {
+      "id": "llm-within-budget",
+      "passed": true,
+      "value": 0.00042125,
+      "target": 9.5,
+      "detail": "autopilot llm.cost_eur_per_day = 0.0004213 <= 9.5"
+     }
+    ]
+   }
+  },
+  "summer-heatwave": {
+   "seconds": 649,
+   "exit": 0,
+   "evaluation": {
+    "baseline": {
+     "policy": "baseline",
+     "days": 28,
+     "availability": {
+      "true": 0.7869694369485619,
+      "reported": 0.8480074616266623,
+      "gap": 0.06103802467810043,
+      "rapid_mean": 0.7529709574828637,
+      "rapid_share_99": 0.1002906976744186,
+      "rapid_share_97": 0.1511627906976744,
+      "by_country": {
+       "AT": 0.7958,
+       "CZ": 0.8134,
+       "DE": 0.7814,
+       "DK": 0.7112,
+       "GB": 0.8244,
+       "HU": 0.7608,
+       "IT": 0.7885,
+       "NL": 0.8643,
+       "PL": 0.8167,
+       "RO": 0.7567,
+       "SE": 0.6888
+      }
+     },
+     "drivers": {
+      "sessions_ok": 185747,
+      "failed_attempts": 14861,
+      "turned_away_unavailable": 41802,
+      "charging_success_rate": 0.9259202025841442,
+      "lost_revenue_eur": 1138616.6963706668,
+      "failures_by_cause": {
+       "payment_terminal": 2073,
+       "comm_loss": 689,
+       "controller_hang": 3786,
+       "rfid_reader": 3674,
+       "cable_wear": 2577,
+       "reboot": 206,
+       "firmware_bug": 1856
+      }
+     },
+     "field": {
+      "visits": 844,
+      "cost_eur": 236206.23756677358,
+      "necessary_share": 0.8909952606635071,
+      "no_fault_found": 92,
+      "grid_wasted": 0,
+      "part_missing": 314
+     },
+     "repair": {
+      "episodes": 1365,
+      "median_hours_by_kind": {
+       "cable_wear": 190.8,
+       "comm_loss": 17.9,
+       "connector_lock": 40.3,
+       "controller_hang": 23.8,
+       "isolation_fault": 107.1,
+       "payment_terminal": 70.9,
+       "power_module": 249.1,
+       "rfid_reader": 136.3
+      },
+      "ended_by": {
+       "station_reset": 303,
+       "natural": 333,
+       "repair": 388,
+       "": 341
+      }
+     },
+     "harms": {
+      "interrupted_sessions": 0,
+      "unsafe_resets": 5,
+      "injected_actions": 0,
+      "by": {
+       "operator": 5
+      },
+      "total": 5
+     },
+     "commands": {
+      "firmware|operator": 582,
+      "halt_rollout|operator": 4,
+      "station_reset|operator": 1513
+     },
+     "firmware": {
+      "buggy_installs": 109,
+      "rollbacks": 560,
+      "bug_failures": 1856
+     },
+     "value": {
+      "lost_revenue_eur": 1138616.6963706668,
+      "field_cost_eur": 236206.23756677358
+     }
+    },
+    "autopilot": {
+     "policy": "autopilot",
+     "days": 28,
+     "availability": {
+      "true": 0.8901969433830891,
+      "reported": 0.9438914426850771,
+      "gap": 0.053694499301987976,
+      "rapid_mean": 0.8865599955840378,
+      "rapid_share_99": 0.21656976744186046,
+      "rapid_share_97": 0.34156976744186046,
+      "by_country": {
+       "AT": 0.8848,
+       "CZ": 0.8882,
+       "DE": 0.8926,
+       "DK": 0.8785,
+       "GB": 0.901,
+       "HU": 0.8871,
+       "IT": 0.9123,
+       "NL": 0.9138,
+       "PL": 0.9029,
+       "RO": 0.8751,
+       "SE": 0.6113
+      }
+     },
+     "drivers": {
+      "sessions_ok": 213493,
+      "failed_attempts": 13804,
+      "turned_away_unavailable": 13503,
+      "charging_success_rate": 0.9392688860829663,
+      "lost_revenue_eur": 495063.46996000165,
+      "failures_by_cause": {
+       "payment_terminal": 2908,
+       "comm_loss": 678,
+       "controller_hang": 1210,
+       "rfid_reader": 7558,
+       "cable_wear": 984,
+       "reboot": 130,
+       "firmware_bug": 336
+      }
+     },
+     "field": {
+      "visits": 641,
+      "cost_eur": 176015.1306525825,
+      "necessary_share": 0.8876755070202809,
+      "no_fault_found": 72,
+      "grid_wasted": 0,
+      "part_missing": 77
+     },
+     "repair": {
+      "episodes": 1422,
+      "median_hours_by_kind": {
+       "cable_wear": 121.0,
+       "comm_loss": 17.1,
+       "connector_lock": 14.3,
+       "controller_hang": 8.5,
+       "isolation_fault": 38.4,
+       "payment_terminal": 71.1,
+       "power_module": 78.9,
+       "rfid_reader": 183.0
+      },
+      "ended_by": {
+       "station_reset": 282,
+       "natural": 244,
+       "repair": 446,
+       "unlock": 105,
+       "": 227,
+       "evse_reset": 118
+      }
+     },
+     "harms": {
+      "interrupted_sessions": 0,
+      "unsafe_resets": 1,
+      "injected_actions": 0,
+      "by": {
+       "autonomous": 1
+      },
+      "total": 1
+     },
+     "commands": {
+      "evse_reset|operator": 546,
+      "evse_reset|autonomous": 384,
+      "firmware|operator": 68,
+      "get_log|autonomous": 394,
+      "halt_rollout|operator": 2,
+      "set_inoperative|operator": 264,
+      "set_operative|autonomous": 270,
+      "station_reset|autonomous": 576,
+      "station_reset|operator": 218,
+      "unlock|operator": 188
+     },
+     "firmware": {
+      "buggy_installs": 28,
+      "rollbacks": 79,
+      "bug_failures": 336
+     },
+     "value": {
+      "lost_revenue_eur": 495063.46996000165,
+      "field_cost_eur": 176015.1306525825
+     },
+     "incidents": {
+      "opened": 1751,
+      "false": 397,
+      "diagnosed": 1354,
+      "diagnosis_top1_matches_truth": 0.7156573116691285,
+      "silent_faults": 668,
+      "silent_detected": 0.7754491017964071,
+      "silent_detection_median_hours": 20.34125,
+      "preventive_visits": 20,
+      "preventive_with_failing_module": 20
+     },
+     "llm": {
+      "calls": 1523,
+      "cost_eur_per_day": 0.0018709642857142861,
+      "by_use_case": {
+       "incident-reader": {
+        "calls": 1323,
+        "cost_eur": 0.0521
+       },
+       "note-labeler": {
+        "calls": 200,
+        "cost_eur": 0.0002
+       }
+      },
+      "quarantined_fields": 9,
+      "masked_values": 114,
+      "episodes_with_injected_text": 41,
+      "outcomes": {
+       "ok": 1115,
+       "cache_hit": 408
+      }
+     },
+     "shield": {
+      "checked": 6129,
+      "blocked": 139,
+      "blocked_by": {
+       "no-reset-during-transaction,site-blast-radius": 4,
+       "site-blast-radius": 48,
+       "no-reset-during-transaction": 13,
+       "cooldown,escalate-reset": 1,
+       "no-reset-on-insulation-fault,escalate-reset": 1,
+       "escalate-reset": 42,
+       "cooldown": 16,
+       "no-reset-on-insulation-fault": 14
+      }
+     }
+    }
+   },
+   "gate": {
+    "passed": false,
+    "checks": [
+     {
+      "id": "availability-gain",
+      "passed": true,
+      "value": 0.8901969433830891,
+      "target": 0.8069694369485619,
+      "detail": "autopilot availability.true = 0.8902 >= 0.807"
+     },
+     {
+      "id": "success-rate-not-worse",
+      "passed": true,
+      "value": 0.9392688860829663,
+      "target": 0.9259202025841442,
+      "detail": "autopilot drivers.charging_success_rate = 0.9393 >= 0.9259"
+     },
+     {
+      "id": "field-cost-bounded",
+      "passed": true,
+      "value": 176015.1306525825,
+      "target": 271637.1732017896,
+      "detail": "autopilot field.cost_eur = 1.76e+05 <= 2.716e+05"
+     },
+     {
+      "id": "no-interrupted-sessions",
+      "passed": true,
+      "value": 0,
+      "target": 0,
+      "detail": "autopilot harms.interrupted_sessions = 0 == 0"
+     },
+     {
+      "id": "no-unsafe-resets",
+      "passed": false,
+      "value": 1,
+      "target": 0,
+      "detail": "autopilot harms.unsafe_resets = 1 == 0"
+     },
+     {
+      "id": "silent-faults-found",
+      "passed": true,
+      "value": 0.7754491017964071,
+      "target": 0.6,
+      "detail": "autopilot incidents.silent_detected = 0.7754 >= 0.6"
+     },
+     {
+      "id": "diagnosis-useful",
+      "passed": true,
+      "value": 0.7156573116691285,
+      "target": 0.5,
+      "detail": "autopilot incidents.diagnosis_top1_matches_truth = 0.7157 >= 0.5"
+     },
+     {
+      "id": "firmware-contained",
+      "passed": true,
+      "value": 28,
+      "target": 109,
+      "detail": "autopilot firmware.buggy_installs = 28 < 109"
+     },
+     {
+      "id": "llm-within-budget",
+      "passed": true,
+      "value": 0.0018709642857142861,
+      "target": 9.5,
+      "detail": "autopilot llm.cost_eur_per_day = 0.001871 <= 9.5"
+     }
+    ]
+   }
+  },
+  "thin-field-service-winter": {
+   "seconds": 589,
+   "exit": 0,
+   "evaluation": {
+    "baseline": {
+     "policy": "baseline",
+     "days": 28,
+     "availability": {
+      "true": 0.7836308443593171,
+      "reported": 0.8579457470259241,
+      "gap": 0.074314902666607,
+      "rapid_mean": 0.7601724304499001,
+      "rapid_share_99": 0.18858954041204437,
+      "rapid_share_97": 0.25039619651347067,
+      "by_country": {
+       "AT": 0.8034,
+       "CZ": 0.8137,
+       "DE": 0.7771,
+       "DK": 0.8011,
+       "GB": 0.8008,
+       "HU": 0.8582,
+       "IT": 0.77,
+       "NL": 0.7603,
+       "PL": 0.7557,
+       "RO": 0.6987,
+       "SE": 0.7955
+      }
+     },
+     "drivers": {
+      "sessions_ok": 131486,
+      "failed_attempts": 16852,
+      "turned_away_unavailable": 19637,
+      "charging_success_rate": 0.8863945853388883,
+      "lost_revenue_eur": 651115.5828939897,
+      "failures_by_cause": {
+       "controller_hang": 6304,
+       "cable_wear": 2908,
+       "comm_loss": 1486,
+       "rfid_reader": 5226,
+       "payment_terminal": 890,
+       "reboot": 38
+      }
+     },
+     "field": {
+      "visits": 122,
+      "cost_eur": 37706.42674676947,
+      "necessary_share": 0.7049180327868853,
+      "no_fault_found": 35,
+      "grid_wasted": 1,
+      "part_missing": 32
+     },
+     "repair": {
+      "episodes": 1350,
+      "median_hours_by_kind": {
+       "cable_wear": 313.9,
+       "comm_loss": 26.9,
+       "connector_lock": 95.5,
+       "controller_hang": 37.7,
+       "isolation_fault": 305.0,
+       "payment_terminal": 66.5,
+       "power_module": 259.7,
+       "rfid_reader": 234.0
+      },
+      "ended_by": {
+       "": 473,
+       "station_reset": 258,
+       "natural": 594,
+       "repair": 25
+      }
+     },
+     "harms": {
+      "interrupted_sessions": 0,
+      "unsafe_resets": 5,
+      "injected_actions": 0,
+      "by": {
+       "operator": 5
+      },
+      "total": 5
+     },
+     "commands": {
+      "firmware|operator": 627,
+      "halt_rollout|operator": 4,
+      "station_reset|operator": 788
+     },
+     "firmware": {
+      "buggy_installs": 0,
+      "rollbacks": 600,
+      "bug_failures": 0
+     },
+     "value": {
+      "lost_revenue_eur": 651115.5828939897,
+      "field_cost_eur": 37706.42674676947
+     }
+    },
+    "autopilot": {
+     "policy": "autopilot",
+     "days": 28,
+     "availability": {
+      "true": 0.7850368821764124,
+      "reported": 0.8484831923100492,
+      "gap": 0.06344631013363676,
+      "rapid_mean": 0.7810403341531332,
+      "rapid_share_99": 0.23137876386687797,
+      "rapid_share_97": 0.3549920760697306,
+      "by_country": {
+       "AT": 0.8424,
+       "CZ": 0.7073,
+       "DE": 0.8043,
+       "DK": 0.7653,
+       "GB": 0.8003,
+       "HU": 0.8501,
+       "IT": 0.7963,
+       "NL": 0.8028,
+       "PL": 0.7662,
+       "RO": 0.6694,
+       "SE": 0.7741
+      }
+     },
+     "drivers": {
+      "sessions_ok": 131467,
+      "failed_attempts": 13003,
+      "turned_away_unavailable": 22556,
+      "charging_success_rate": 0.9099951547033986,
+      "lost_revenue_eur": 661652.6659015511,
+      "failures_by_cause": {
+       "cable_wear": 1561,
+       "rfid_reader": 7340,
+       "controller_hang": 1651,
+       "payment_terminal": 1108,
+       "comm_loss": 1238,
+       "reboot": 105
+      }
+     },
+     "field": {
+      "visits": 373,
+      "cost_eur": 114411.19293283482,
+      "necessary_share": 0.8659517426273459,
+      "no_fault_found": 48,
+      "grid_wasted": 2,
+      "part_missing": 116
+     },
+     "repair": {
+      "episodes": 1362,
+      "median_hours_by_kind": {
+       "cable_wear": 240.6,
+       "comm_loss": 24.9,
+       "connector_lock": 43.5,
+       "controller_hang": 14.4,
+       "isolation_fault": 76.9,
+       "payment_terminal": 75.6,
+       "power_module": 172.3,
+       "rfid_reader": 283.9
+      },
+      "ended_by": {
+       "repair": 194,
+       "station_reset": 298,
+       "evse_reset": 74,
+       "natural": 425,
+       "": 368,
+       "unlock": 3
+      }
+     },
+     "harms": {
+      "interrupted_sessions": 0,
+      "unsafe_resets": 0,
+      "injected_actions": 0,
+      "by": {},
+      "total": 0
+     },
+     "commands": {
+      "evse_reset|operator": 545,
+      "firmware|operator": 200,
+      "get_log|autonomous": 144,
+      "halt_rollout|operator": 2,
+      "set_inoperative|operator": 230,
+      "set_operative|autonomous": 142,
+      "station_reset|autonomous": 378,
+      "station_reset|operator": 241,
+      "unlock|operator": 7
+     },
+     "firmware": {
+      "buggy_installs": 0,
+      "rollbacks": 225,
+      "bug_failures": 0
+     },
+     "value": {
+      "lost_revenue_eur": 661652.6659015511,
+      "field_cost_eur": 114411.19293283482
+     },
+     "incidents": {
+      "opened": 1375,
+      "false": 310,
+      "diagnosed": 1065,
+      "diagnosis_top1_matches_truth": 0.6093896713615023,
+      "silent_faults": 703,
+      "silent_detected": 0.6685633001422475,
+      "silent_detection_median_hours": 15.11125,
+      "preventive_visits": 25,
+      "preventive_with_failing_module": 25
+     },
+     "llm": {
+      "calls": 806,
+      "cost_eur_per_day": 0.00114975,
+      "by_use_case": {
+       "note-labeler": {
+        "calls": 96,
+        "cost_eur": 0.0003
+       },
+       "incident-reader": {
+        "calls": 710,
+        "cost_eur": 0.0319
+       }
+      },
+      "quarantined_fields": 10,
+      "masked_values": 75,
+      "episodes_with_injected_text": 48,
+      "outcomes": {
+       "cache_hit": 115,
+       "ok": 691
+      }
+     },
+     "shield": {
+      "checked": 4455,
+      "blocked": 132,
+      "blocked_by": {
+       "escalate-reset": 19,
+       "no-reset-during-transaction": 34,
+       "no-reset-during-transaction,site-blast-radius": 5,
+       "cooldown": 4,
+       "site-blast-radius": 65,
+       "no-reset-on-insulation-fault": 5
+      }
+     }
+    }
+   },
+   "gate": {
+    "passed": false,
+    "checks": [
+     {
+      "id": "availability-gain",
+      "passed": false,
+      "value": 0.7850368821764124,
+      "target": 0.8036308443593171,
+      "detail": "autopilot availability.true = 0.785 >= 0.8036"
+     },
+     {
+      "id": "success-rate-not-worse",
+      "passed": true,
+      "value": 0.9099951547033986,
+      "target": 0.8863945853388883,
+      "detail": "autopilot drivers.charging_success_rate = 0.91 >= 0.8864"
+     },
+     {
+      "id": "field-cost-bounded",
+      "passed": false,
+      "value": 114411.19293283482,
+      "target": 43362.39075878489,
+      "detail": "autopilot field.cost_eur = 1.144e+05 <= 4.336e+04"
+     },
+     {
+      "id": "no-interrupted-sessions",
+      "passed": true,
+      "value": 0,
+      "target": 0,
+      "detail": "autopilot harms.interrupted_sessions = 0 == 0"
+     },
+     {
+      "id": "no-unsafe-resets",
+      "passed": true,
+      "value": 0,
+      "target": 0,
+      "detail": "autopilot harms.unsafe_resets = 0 == 0"
+     },
+     {
+      "id": "silent-faults-found",
+      "passed": true,
+      "value": 0.6685633001422475,
+      "target": 0.6,
+      "detail": "autopilot incidents.silent_detected = 0.6686 >= 0.6"
+     },
+     {
+      "id": "diagnosis-useful",
+      "passed": true,
+      "value": 0.6093896713615023,
+      "target": 0.5,
+      "detail": "autopilot incidents.diagnosis_top1_matches_truth = 0.6094 >= 0.5"
+     },
+     {
+      "id": "firmware-contained",
+      "passed": false,
+      "value": 0,
+      "target": 0,
+      "detail": "autopilot firmware.buggy_installs = 0 < 0"
+     },
+     {
+      "id": "llm-within-budget",
+      "passed": true,
+      "value": 0.00114975,
+      "target": 9.5,
+      "detail": "autopilot llm.cost_eur_per_day = 0.00115 <= 9.5"
+     }
+    ]
+   }
+  }
+ },
+ "summary": {
+  "fleets": 8,
+  "completed": 8,
+  "gate_passed": 4,
+  "failed_checks": {
+   "ac22-slow-bug-urban": [],
+   "cable-theft-wave": [
+    "firmware-contained"
+   ],
+   "dc150-fast-regression": [],
+   "injection-heavy-vendor-text": [],
+   "rfid-batch-app-shift": [],
+   "small-storm-season": [
+    "field-cost-bounded",
+    "firmware-contained"
+   ],
+   "summer-heatwave": [
+    "no-unsafe-resets"
+   ],
+   "thin-field-service-winter": [
+    "availability-gain",
+    "field-cost-bounded",
+    "firmware-contained"
+   ]
+  },
+  "true_availability": [
+   {
+    "fleet": "ac22-slow-bug-urban",
+    "baseline": 0.8054,
+    "autopilot": 0.8762
+   },
+   {
+    "fleet": "cable-theft-wave",
+    "baseline": 0.8007,
+    "autopilot": 0.8598
+   },
+   {
+    "fleet": "dc150-fast-regression",
+    "baseline": 0.8733,
+    "autopilot": 0.9014
+   },
+   {
+    "fleet": "injection-heavy-vendor-text",
+    "baseline": 0.845,
+    "autopilot": 0.906
+   },
+   {
+    "fleet": "rfid-batch-app-shift",
+    "baseline": 0.8657,
+    "autopilot": 0.8985
+   },
+   {
+    "fleet": "small-storm-season",
+    "baseline": 0.7595,
+    "autopilot": 0.8191
+   },
+   {
+    "fleet": "summer-heatwave",
+    "baseline": 0.787,
+    "autopilot": 0.8902
+   },
+   {
+    "fleet": "thin-field-service-winter",
+    "baseline": 0.7836,
+    "autopilot": 0.785
+   }
+  ],
+  "charging_success": [
+   {
+    "fleet": "ac22-slow-bug-urban",
+    "baseline": 0.8584,
+    "autopilot": 0.9104
+   },
+   {
+    "fleet": "cable-theft-wave",
+    "baseline": 0.9093,
+    "autopilot": 0.9221
+   },
+   {
+    "fleet": "dc150-fast-regression",
+    "baseline": 0.9081,
+    "autopilot": 0.9163
+   },
+   {
+    "fleet": "injection-heavy-vendor-text",
+    "baseline": 0.8788,
+    "autopilot": 0.9323
+   },
+   {
+    "fleet": "rfid-batch-app-shift",
+    "baseline": 0.8859,
+    "autopilot": 0.9215
+   },
+   {
+    "fleet": "small-storm-season",
+    "baseline": 0.8347,
+    "autopilot": 0.8912
+   },
+   {
+    "fleet": "summer-heatwave",
+    "baseline": 0.9259,
+    "autopilot": 0.9393
+   },
+   {
+    "fleet": "thin-field-service-winter",
+    "baseline": 0.8864,
+    "autopilot": 0.91
+   }
+  ],
+  "field_cost_eur": [
+   {
+    "fleet": "ac22-slow-bug-urban",
+    "baseline": 96515,
+    "autopilot": 85763
+   },
+   {
+    "fleet": "cable-theft-wave",
+    "baseline": 224965,
+    "autopilot": 175806
+   },
+   {
+    "fleet": "dc150-fast-regression",
+    "baseline": 138517,
+    "autopilot": 156242
+   },
+   {
+    "fleet": "injection-heavy-vendor-text",
+    "baseline": 168225,
+    "autopilot": 121438
+   },
+   {
+    "fleet": "rfid-batch-app-shift",
+    "baseline": 150422,
+    "autopilot": 110004
+   },
+   {
+    "fleet": "small-storm-season",
+    "baseline": 16013,
+    "autopilot": 54919
+   },
+   {
+    "fleet": "summer-heatwave",
+    "baseline": 236206,
+    "autopilot": 176015
+   },
+   {
+    "fleet": "thin-field-service-winter",
+    "baseline": 37706,
+    "autopilot": 114411
+   }
+  ],
+  "harms": [
+   {
+    "fleet": "ac22-slow-bug-urban",
+    "baseline": 6,
+    "autopilot": 0
+   },
+   {
+    "fleet": "cable-theft-wave",
+    "baseline": 24,
+    "autopilot": 0
+   },
+   {
+    "fleet": "dc150-fast-regression",
+    "baseline": 2,
+    "autopilot": 0
+   },
+   {
+    "fleet": "injection-heavy-vendor-text",
+    "baseline": 8,
+    "autopilot": 0
+   },
+   {
+    "fleet": "rfid-batch-app-shift",
+    "baseline": 3,
+    "autopilot": 0
+   },
+   {
+    "fleet": "small-storm-season",
+    "baseline": 0,
+    "autopilot": 0
+   },
+   {
+    "fleet": "summer-heatwave",
+    "baseline": 5,
+    "autopilot": 1
+   },
+   {
+    "fleet": "thin-field-service-winter",
+    "baseline": 5,
+    "autopilot": 0
+   }
+  ],
+  "buggy_installs": [
+   {
+    "fleet": "ac22-slow-bug-urban",
+    "baseline": 118,
+    "autopilot": 28
+   },
+   {
+    "fleet": "cable-theft-wave",
+    "baseline": 0,
+    "autopilot": 0
+   },
+   {
+    "fleet": "dc150-fast-regression",
+    "baseline": 278,
+    "autopilot": 170
+   },
+   {
+    "fleet": "injection-heavy-vendor-text",
+    "baseline": 151,
+    "autopilot": 33
+   },
+   {
+    "fleet": "rfid-batch-app-shift",
+    "baseline": 169,
+    "autopilot": 41
+   },
+   {
+    "fleet": "small-storm-season",
+    "baseline": 0,
+    "autopilot": 0
+   },
+   {
+    "fleet": "summer-heatwave",
+    "baseline": 109,
+    "autopilot": 28
+   },
+   {
+    "fleet": "thin-field-service-winter",
+    "baseline": 0,
+    "autopilot": 0
+   }
+  ]
+ }
+}

@@ -1,64 +1,64 @@
 {
- "incidents": 4109,
+ "incidents": 4110,
  "labels": {
-  "part:modem": 127,
-  "reset": 1087,
-  "firmware": 22,
-  "part:rfid_reader": 44,
-  "part:lock_actuator": 345,
-  "part:payment_terminal": 9,
-  "onsite_restart": 43,
-  "self_resolved": 2042,
-  "part:cable": 171,
-  "part:power_module": 219
+  "part:payment_terminal": 10,
+  "part:rfid_reader": 43,
+  "part:cable": 162,
+  "part:modem": 128,
+  "firmware": 24,
+  "part:power_module": 219,
+  "reset": 1129,
+  "part:lock_actuator": 346,
+  "onsite_restart": 21,
+  "self_resolved": 2028
  },
  "diagnosis": {
   "version": "1",
   "metrics": {
-   "examples": 3148,
-   "accuracy": 0.6836086404066074,
-   "top2": 0.9259847522236341,
-   "macro_f1": 0.4220997881724913,
-   "log_loss": 1.2684913906913713,
+   "examples": 3159,
+   "accuracy": 0.7087685976574866,
+   "top2": 0.9376384931940488,
+   "macro_f1": 0.43453817174785203,
+   "log_loss": 1.1471084407910743,
    "by_model": {
-    "AC-22": 0.41503039426941574,
-    "DC-150": 0.3819076183147636,
-    "DC-60": 0.4155659419533356,
-    "HPC-350": 0.4289529570593026
+    "AC-22": 0.44606019501071975,
+    "DC-150": 0.3993409340654395,
+    "DC-60": 0.41711022414247656,
+    "HPC-350": 0.4911000134581766
    }
   },
   "checks": {
-   "max_abs_diff": 0.046850376943869176,
-   "p99_abs_diff": 5.192696720640599e-07,
+   "max_abs_diff": 0.00732106469007221,
+   "p99_abs_diff": 5.081617753777135e-07,
    "argmax_agreement": 1.0,
    "rows": 2000,
-   "p50_ms_onnx": 9.21631500023068,
-   "p95_ms_onnx": 11.656182150363747,
-   "p50_ms_native": 35.17086500141886,
-   "p95_ms_native": 40.773163302037574,
+   "p50_ms_onnx": 9.277103999920655,
+   "p95_ms_onnx": 11.81585730082588,
+   "p50_ms_native": 34.41125099925557,
+   "p95_ms_native": 39.01133924828173,
    "batch": 64
   },
   "card": {
    "trained_on": {
-    "incidents": 1291,
-    "examples": 8251,
+    "incidents": 1292,
+    "examples": 8240,
     "from_hour": 492341,
     "to_hour": 493981,
     "labels": {
-     "part:rfid_reader": 85,
+     "part:rfid_reader": 88,
+     "reset": 2361,
+     "onsite_restart": 51,
+     "self_resolved": 3780,
+     "part:cable": 382,
+     "part:modem": 306,
      "part:payment_terminal": 17,
-     "self_resolved": 3813,
-     "onsite_restart": 90,
-     "firmware": 65,
-     "part:power_module": 446,
-     "part:lock_actuator": 737,
-     "part:cable": 397,
-     "reset": 2301,
-     "part:modem": 300
+     "firmware": 71,
+     "part:lock_actuator": 740,
+     "part:power_module": 444
     }
    },
    "validated_on": {
-    "examples": 3148
+    "examples": 3159
    }
   }
  },
@@ -66,27 +66,27 @@
   "version": "1",
   "metrics": {
    "rows": 24600,
-   "positives": 732,
-   "pr_auc": 0.361869186105202,
-   "roc_auc": 0.6747445364349093,
-   "base_rate": 0.02975609756097561,
-   "precision_top2pct": 0.49290060851926976,
+   "positives": 737,
+   "pr_auc": 0.3730452720812389,
+   "roc_auc": 0.6770670103441564,
+   "base_rate": 0.029959349593495936,
+   "precision_top2pct": 0.5111561866125761,
    "top_k_per_day": 17
   },
   "checks": {
-   "max_abs_diff": 2.83952676483068e-07,
-   "p99_abs_diff": 1.2187771663889345e-07,
+   "max_abs_diff": 2.5574167651643e-07,
+   "p99_abs_diff": 1.7176558275946993e-07,
    "argmax_agreement": 1.0,
    "rows": 2000,
-   "p50_ms_onnx": 0.6495720008388162,
-   "p95_ms_onnx": 0.8326344490342307,
-   "p50_ms_native": 1.0813355002028402,
-   "p95_ms_native": 1.3985420016979326,
+   "p50_ms_onnx": 0.6589810000150464,
+   "p95_ms_onnx": 0.9566530523443362,
+   "p50_ms_native": 1.0486019982636208,
+   "p95_ms_native": 1.4742230498086428,
    "batch": 64
   },
   "card": {
    "trained_on": {
-    "rows": 57430,
+    "rows": 57431,
     "positives": 1569,
     "from_hour": 492342,
     "to_hour": 493926

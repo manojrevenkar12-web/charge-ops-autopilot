@@ -474,8 +474,17 @@ class Engine:
             tripped = ep.kind == "power_module" and t >= ep.onset_end
             if ep.kind in ("connector_lock", "isolation_fault") or tripped:
                 comp = "PowerModule" if tripped else ("Connector" if ep.evse else "ChargingStation")
-                self.emit(c, t, "NotifyEvent", evse=ep.evse, component=comp, variable="Problem", value=1.0,
-                          tech_code=self._code(ep, c), tech_info=self._vendor_info(ep, ep.remedy_u[-2]))
+                self.emit(
+                    c,
+                    t,
+                    "NotifyEvent",
+                    evse=ep.evse,
+                    component=comp,
+                    variable="Problem",
+                    value=1.0,
+                    tech_code=self._code(ep, c),
+                    tech_info=self._vendor_info(ep, ep.remedy_u[-2]),
+                )
 
     def _go_offline(self, c: int, t: int) -> None:
         self.online[c] = False

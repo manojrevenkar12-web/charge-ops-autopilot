@@ -48,7 +48,7 @@ button { font: inherit; color: inherit; }
 
 /* type */
 .kicker { font: 600 var(--t-sm) / 1.3 var(--font-narrow); color: var(--ink-3); }
-.hero { font: 700 var(--t-3xl) / var(--lh-tight) var(--font); letter-spacing: -0.02em; max-width: 22ch; }
+.hero { font: 700 var(--t-3xl) / var(--lh-tight) var(--font); letter-spacing: -0.02em; max-width: 26ch; }
 .hero-2 { display: block; margin-top: var(--s-2); font-weight: 500; color: var(--ink-2); }
 .title { font: 700 var(--t-2xl) / var(--lh-tight) var(--font); letter-spacing: -0.015em; max-width: 26ch; }
 .lead { color: var(--ink-2); max-width: 72ch; font-size: var(--t-lg); line-height: 1.45; }
@@ -141,7 +141,7 @@ th small { display: block; color: var(--ink-3); font-weight: 400; max-width: 34c
 .key--held { border-color: var(--held); }
 
 /* autonomy ladder */
-.ladder td { text-align: left; vertical-align: top; min-width: 150px; }
+.ladder td, .ladder thead th { text-align: left; vertical-align: top; min-width: 150px; }
 .rung { display: table-cell; }
 .rung-level { display: block; font: 600 var(--t-xs) / 1.2 var(--font-narrow); }
 .rung--act .rung-level { color: var(--act); }

@@ -26,8 +26,8 @@ export const Autonomy = () => {
       <p className="lead">
         Every action starts as a proposal an operator approves. Once at least {d.thresholds.min_outcomes} outcomes the autopilot
         observed itself put the lower 95% bound of its success rate above {pct(d.thresholds.wilson_lower, 0)} (the tick), the relay
-        closes and it acts alone; if the rate falls, it goes back to asking. {d.never_autonomous.map(action).join(" and ")} always
-        need a person.
+        closes and it acts alone; if the rate falls, it goes back to asking. Some actions always need a person:{" "}
+        {d.never_autonomous.map(action).join(" and ")}.
       </p>
       <div className="table-wrap">
         <table className="ladder">

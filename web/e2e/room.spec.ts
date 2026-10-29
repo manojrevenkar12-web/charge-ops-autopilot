@@ -22,11 +22,12 @@ test("an incident's decision line shows where the shield opened the breaker", as
   const line = page.getByRole("img", { name: /Decisions for/ });
   await expect(line).toBeVisible();
   await expect(page.locator(".breaker--open").first()).toBeVisible();
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(2500); // the current runs along the line once
   await shot(page, "02-incident-blocked");
   await page.getByRole("button", { name: "Acted alone" }).click();
-  await expect(page.locator(".wire--act").first()).toBeVisible();
-  await page.waitForTimeout(1500);
+  await expect(page.locator(".node--act").first()).toBeVisible();
+  await expect(page.getByText("autopilot", { exact: true }).first()).toBeVisible();
+  await page.waitForTimeout(2500);
   await shot(page, "03-incident-autonomous");
 });
 

@@ -22,6 +22,7 @@ promotion:               # a challenger replaces the champion only if all of the
     diagnosis_min_gain_macro_f1: 0.0     # not worse overall on the same recent weeks
     diagnosis_max_slice_drop: 0.05       # and no hardware model loses more than this
     risk_min_gain_pr_auc: 0.0
+    min_unseen_rows: {diagnosis: 300, risk: 3000}   # both models are compared only on rows neither trained on
   onnx:                                  # the exported model must give the same answers
     min_argmax_agreement: 0.999
     max_p99_abs_diff: 1.0e-4             # (float32 thresholds can flip a rare split; the maximum is reported)

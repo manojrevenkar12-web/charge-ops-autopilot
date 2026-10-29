@@ -132,10 +132,10 @@ class ModelOps:
         ds = dataset.build(prep, self.chargers, lexicon.read, until=now)
         rec: dict[str, Any] = {"ts": now, "event": "retrain", "examples": ds["diagnosis"].height}
         cand = models.train_diagnosis(ds["diagnosis"], self.cfg["diagnosis"])
-        _, va = models._split(ds["diagnosis"], "onset", self.cfg["diagnosis"]["validation_days"])
+        tr, va = models._split(ds["diagnosis"], "onset", self.cfg["diagnosis"]["validation_days"])
         onx = models.to_onnx(cand)
         checks = models.onnx_check(cand, onx, va.tail(min(2000, va.height)), iterations=40)
-        verdict = gate.offline(cand, self.diagnosis, va, checks)
+        verdict = self._fair_gate(cand, self.diagnosis, va, "onset", checks)
         rec["diagnosis_gate"] = {
             "passed": verdict["passed"],
             "reasons": verdict["reasons"],
@@ -148,13 +148,14 @@ class ModelOps:
             )
             self.reg.set_alias("diagnosis", "challenger", v)
             self.challenger = self.reg.load("diagnosis", v)
+            self.challenger_rows = tr.select([c for c in features.NUMERIC if c in tr.columns])
             self.shadow = []
             rec["challenger"] = v
         rcand = models.train_risk(ds["risk"], self.cfg["risk"])
         _, rva = models._split(ds["risk"], "hour", self.cfg["risk"]["validation_days"])
         ronx = models.to_onnx(rcand)
         rchecks = models.onnx_check(rcand, ronx, rva.tail(min(2000, rva.height)), iterations=40)
-        rverdict = gate.offline(rcand, self.risk, rva, rchecks)
+        rverdict = self._fair_gate(rcand, self.risk, rva, "hour", rchecks)
         rec["risk_gate"] = {
             "passed": rverdict["passed"],
             "reasons": rverdict["reasons"],
@@ -171,6 +172,24 @@ class ModelOps:
             rec["risk_promoted"] = v
         rec["seconds"] = round(time.perf_counter() - t, 1)
         self.history_log.append(rec)
+
+    def _fair_gate(
+        self, cand: Any, champion: Any, va: pl.DataFrame, col: str, checks: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Compare on the validation rows neither model trained on: the champion was trained up to some hour, and
+        rows before it would flatter the champion. Until there are enough such rows the challenger waits."""
+        if champion is not None:
+            cut = int(champion.meta["card"]["trained_on"]["to_hour"])
+            va = va.filter(pl.col(col) > cut)
+            need = self.cfg["promotion"]["offline"]["min_unseen_rows"][cand.kind]
+            if va.height < need:
+                return {
+                    "passed": False,
+                    "candidate": {},
+                    "champion": {},
+                    "reasons": [f"only {va.height} rows the champion has not seen (needs {need})"],
+                }
+        return gate.offline(cand, champion, va, checks)
 
     def resolved(self, inc: Any) -> None:
         """Shadow scoring: when an incident resolves, compare what champion and challenger predicted first."""
@@ -200,6 +219,7 @@ class ModelOps:
                     self.reg.set_alias("diagnosis", "previous", old)
                 self.reg.set_alias("diagnosis", "champion", self.challenger.version)
                 self.diagnosis = self.challenger
+                self._ref_rows = getattr(self, "challenger_rows", getattr(self, "_ref_rows", None))  # drift ref
                 rec["promoted"] = True
             else:
                 rec["promoted"] = False

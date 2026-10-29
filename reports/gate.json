@@ -4,23 +4,23 @@
   {
    "id": "availability-gain",
    "passed": true,
-   "value": 0.9045834610124461,
-   "target": 0.8911851372297903,
-   "detail": "autopilot availability.true = 0.9046 >= 0.8912"
+   "value": 0.9083806559055319,
+   "target": 0.8912196900537193,
+   "detail": "autopilot availability.true = 0.9084 >= 0.8912"
   },
   {
    "id": "success-rate-not-worse",
    "passed": true,
-   "value": 0.9248767702201754,
-   "target": 0.8911770599105016,
-   "detail": "autopilot drivers.charging_success_rate = 0.9249 >= 0.8912"
+   "value": 0.9215124921545526,
+   "target": 0.8911065257407518,
+   "detail": "autopilot drivers.charging_success_rate = 0.9215 >= 0.8911"
   },
   {
    "id": "field-cost-bounded",
    "passed": true,
-   "value": 195957.76866713967,
-   "target": 320200.93159974593,
-   "detail": "autopilot field.cost_eur = 1.96e+05 <= 3.202e+05"
+   "value": 203618.92039886612,
+   "target": 294528.78197409125,
+   "detail": "autopilot field.cost_eur = 2.036e+05 <= 2.945e+05"
   },
   {
    "id": "no-interrupted-sessions",
@@ -39,16 +39,16 @@
   {
    "id": "silent-faults-found",
    "passed": true,
-   "value": 0.8037486218302095,
+   "value": 0.8072687224669604,
    "target": 0.6,
-   "detail": "autopilot incidents.silent_detected = 0.8037 >= 0.6"
+   "detail": "autopilot incidents.silent_detected = 0.8073 >= 0.6"
   },
   {
    "id": "diagnosis-useful",
    "passed": true,
-   "value": 0.6630103595368677,
+   "value": 0.6656479217603912,
    "target": 0.5,
-   "detail": "autopilot incidents.diagnosis_top1_matches_truth = 0.663 >= 0.5"
+   "detail": "autopilot incidents.diagnosis_top1_matches_truth = 0.6656 >= 0.5"
   },
   {
    "id": "firmware-contained",
@@ -60,16 +60,16 @@
   {
    "id": "llm-within-budget",
    "passed": true,
-   "value": 0.001810166666666667,
+   "value": 0.0013089285714285716,
    "target": 9.5,
-   "detail": "autopilot llm.cost_eur_per_day = 0.00181 <= 9.5"
+   "detail": "autopilot llm.cost_eur_per_day = 0.001309 <= 9.5"
   },
   {
    "id": "harm-is-measurable",
    "passed": true,
-   "value": 1709,
+   "value": 1425,
    "target": 0,
-   "detail": "llm-decides harms.total = 1709 > 0"
+   "detail": "llm-decides harms.total = 1425 > 0"
   }
  ]
 }

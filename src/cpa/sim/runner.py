@@ -45,6 +45,10 @@ def test_run(w: W.World, policy: Policy, name: str, log: Any = print) -> dict[st
     e.run()
     out = RUNS / name
     e.write(out / "observed", out / "truth")
+    arts = policy.artifacts() if hasattr(policy, "artifacts") else {}
+    (out / "ops").mkdir(parents=True, exist_ok=True)
+    for k, rows in arts.items():
+        (out / "ops" / f"{k}.json").write_text(json.dumps(rows, default=str))
     meta = {"policy": name, "start": start, "scored_from": w.history_end, "end": w.end,
             "seconds": round(time.perf_counter() - t, 1), "report": policy.report()}
     (out / "meta.json").write_text(json.dumps(meta, default=str))

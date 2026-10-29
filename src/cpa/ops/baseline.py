@@ -176,7 +176,6 @@ class BaselinePolicy:
                         incident=t.id, decided_by="operator")]
 
     def _looks_fine(self, cid: str, since: int) -> bool:
-        cv = self.view.chargers[cid]
         if not self.view.online(cid) or self.view.faulted(cid):
             return False
         return not any(ts >= since for ts in self.complaints.get(cid, []))
@@ -198,7 +197,8 @@ class BaselinePolicy:
         counts: dict[tuple[str, str], int] = defaultdict(int)
         for cid, ts in self.complaints.items():
             cv = self.view.chargers.get(cid)
-            if cv:
+            # the NOC groups complaints about sessions that stop early (it sees those chargers' error stops)
+            if cv and self.view.recent(cv.evcomm_fails, 72, now) >= 2:
                 counts[(cv.model, cv.firmware)] += sum(1 for x in ts if x >= now - 7 * DAY)
         for key, n in counts.items():
             if n >= cfg["complaints_in_7_days"] and key not in self.escalations:
@@ -223,6 +223,11 @@ class BaselinePolicy:
         queue = [t for t in self.tickets.open.values()
                  if t.state == "dispatch" or (t.state == "part" and (t.part_eta or 0) <= day_start + 8 * HOUR)]
         return fifo_routes(self.view, queue, self.techs, self.cfg["stops_per_technician"])
+
+    def artifacts(self) -> dict[str, list[dict[str, Any]]]:
+        return {"incidents": [{"id": t.id, "charger_id": t.charger_id, "opened": t.opened, "closed": t.closed,
+                               "state": t.state, "resolution": t.reason, "actions": t.actions, "visits": t.visits}
+                              for t in self.tickets.all()]}
 
     def report(self) -> dict[str, Any]:
         return {"tickets": len(self.tickets.all()), "open": len(self.tickets.open),

@@ -786,6 +786,8 @@ class Engine:
         outcome = "part_needed" if needed else ("fixed" if fixed else "no_fault_found")
         part_used = next((self.cfg["faults"][ep.kind].get("part") for ep in fixed
                           if self.cfg["faults"][ep.kind].get("part")), None)
+        if u[15] >= fs["structured_part_field"]:
+            part_used = None  # the structured field is often left empty; the note still says what was done
         self._visit_report(t + repair_s, tech, stop, outcome, part_used, part_needed, cause, cost, eta=eta,
                            evse=primary.evse if primary else 1, u=float(u[14]))
         self.visit_truth.append({"ts": t, "charger_id": stop.charger_id, "necessary": bool(eps),

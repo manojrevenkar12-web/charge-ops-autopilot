@@ -1,0 +1,70 @@
+# The LLM gateway: every model call in the system goes through it. Use cases are the unit of
+# ownership: each has routes, a budget, token limits, guardrails and an owner. The same settings
+# are exported as Azure API Management AI-gateway policies (cpa gateway apim).
+
+models:   # USD per 1M tokens, Anthropic list prices as published by a price tracker on 2026-10-29
+          # (computeprices.com); verify against the Microsoft Foundry price sheet before relying on them
+  claude-haiku-5-5:  {provider: anthropic, input_usd: 0.10, output_usd: 0.50, context: 200000}
+  claude-sonnet-5-5: {provider: anthropic, input_usd: 2.00, output_usd: 10.00, context: 200000}
+  claude-opus-5-5:   {provider: anthropic, input_usd: 4.00, output_usd: 20.00, context: 200000}
+  distilled-notes:   {provider: local, input_usd: 0.0, output_usd: 0.0, context: 4096}   # our own small model
+usd_to_eur: 0.92          # assumed
+
+providers:
+  default: simulated      # no key in this environment: a deterministic stand-in reads the text (README says so)
+  anthropic: {base_url_env: ANTHROPIC_BASE_URL, key_env: ANTHROPIC_API_KEY}
+  azure_foundry: {endpoint_env: AZURE_AI_ENDPOINT, key_env: AZURE_AI_KEY}
+
+use_cases:
+  incident-reader:
+    owner: ai-unit/ops
+    purpose: read vendor techInfo, diagnostic logs, complaints and runbook passages for an incident
+    route: [claude-haiku-5-5, claude-sonnet-5-5]        # primary, then fallback
+    escalate_to: claude-sonnet-5-5                     # when the reader is unsure (confidence < 0.6)
+    max_input_tokens: 6000
+    max_output_tokens: 400
+    tokens_per_minute: 60000
+    daily_budget_eur: 6.0
+    pii: mask
+    untrusted_fields: [tech_info, log, complaint]
+    output_schema: incident_reading
+    cache: true
+  note-labeler:
+    owner: ai-unit/mlops
+    purpose: turn technicians' notes (ten languages) into training labels
+    route: [distilled-notes, claude-haiku-5-5]          # the small model first; the LLM when it is unsure
+    cascade_threshold: 0.85
+    max_input_tokens: 800
+    max_output_tokens: 60
+    tokens_per_minute: 120000
+    daily_budget_eur: 2.0
+    pii: mask
+    untrusted_fields: [note]
+    output_schema: note_label
+    cache: true
+  dispatch-brief:
+    owner: ai-unit/field
+    purpose: a short job brief in the technician's language
+    route: [claude-haiku-5-5]
+    max_input_tokens: 1500
+    max_output_tokens: 250
+    tokens_per_minute: 30000
+    daily_budget_eur: 1.5
+    pii: mask
+    untrusted_fields: [tech_info, complaint]
+    output_schema: brief
+    cache: false
+
+guardrails:
+  pii_patterns:
+    email: '[\w.+-]+@[\w-]+\.[\w.]+'
+    phone: '\+?\d[\d \-]{7,}\d'
+    name_hint: true       # names next to contact details
+  injection:
+    markers: ["ignore prior", "ignore previous", "new instruction", "system note", "assistant:", "</techinfo>",
+              "set every charger", "mark this incident resolved", "safety checks already done"]
+    action: quarantine    # the field is replaced by a placeholder and the incident flagged
+  output:
+    allowed_actions: [evse_reset, station_reset, unlock, set_inoperative, get_log, dispatch, wait]
+    reject_unknown_fields: true
+  log_prompts: redacted   # prompts and outputs are logged after PII masking, never raw

@@ -129,6 +129,7 @@ field_service:
   km_cost_eur: 0.45
   note_language_local: 0.8               # technicians write notes in the local language
   note_cause_wrong: 0.1                  # technicians record the wrong cause this often
+  structured_part_field: 0.6             # share of reports with the part-used field filled in
 
 untrusted_text:
   injection_share: 0.02                  # vendor techInfo strings that carry instructions to a model

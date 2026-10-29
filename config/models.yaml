@@ -1,0 +1,45 @@
+# Models, how they are trained, and what a new version must show before it decides anything.
+
+registry:
+  uri: sqlite            # build/models/registry.db; Azure ML registry in production (azure/ml/)
+  experiment: charge-ops
+
+diagnosis:               # incident -> what will fix it
+  min_class_examples: 20 # rarer remedies fold into "other"
+  validation_days: 28    # the most recent weeks are held out, never shuffled
+  lightgbm: {num_leaves: 31, learning_rate: 0.05, n_estimators: 400, min_child_samples: 20,
+             subsample: 0.8, subsample_freq: 1, colsample_bytree: 0.8, class_weight: balanced, verbose: -1}
+  samples_per_incident: [0, 2, 6]   # features at onset and a few hours later, as decisions happen then too
+
+risk:                    # charger -> a connector goes Faulted within 48 h
+  horizon_hours: 48
+  validation_days: 28
+  lightgbm: {num_leaves: 31, learning_rate: 0.05, n_estimators: 300, min_child_samples: 40,
+             subsample: 0.8, subsample_freq: 1, colsample_bytree: 0.8, verbose: -1}
+
+promotion:               # a challenger replaces the champion only if all of these hold
+  offline:
+    diagnosis_min_gain_macro_f1: 0.0     # not worse overall on the same recent weeks
+    diagnosis_max_slice_drop: 0.05       # and no hardware model loses more than this
+    risk_min_gain_pr_auc: 0.0
+  onnx:                                  # the exported model must give the same answers
+    min_argmax_agreement: 0.999
+    max_p99_abs_diff: 1.0e-4             # (float32 thresholds can flip a rare split; the maximum is reported)
+  latency_p95_ms: 25                     # batch of 64 incidents on one CPU core
+  shadow:
+    min_incidents: 40                    # scored alongside the champion before it may decide
+    min_agreement_or_gain: true          # promote if it agrees with resolved outcomes at least as often
+  canary:
+    share: 0.2                           # of incidents, by charger hash
+    days: 3
+    rollback_if_resolution_drop: 0.1     # observed fix rate below the champion's by this much
+
+retraining:
+  every_days: 7
+  weekday: 0             # Monday, 03:00 UTC
+  min_new_incidents: 50
+
+drift:
+  psi_alert: 0.2
+  reference: training
+  window_days: 3

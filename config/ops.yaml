@@ -82,8 +82,8 @@ autonomy:                          # the autopilot earns the right to act withou
 
 detection:
   offline_after_hours: 1.6
-  silent_start_failures: 2         # failed starts in 6 h on an Available charger
-  evcomm_failures: 3               # EV communication failures in 24 h on one EVSE
+  silent_start_failures: 2         # failed starts in 24 h on an Available charger
+  evcomm_failures: 3               # EV communication failures in 72 h
   auth_drop_days: 3                # days of no RFID (or contactless) starts where the charger normally has them
   daily_risk_threshold: 0.35       # failure-risk score that triggers a preventive check
   cohort:                          # fleet level: a model and firmware failing more than its peers
@@ -95,6 +95,36 @@ detection:
 dispatch:
   stops_per_technician: 5
   horizon_days: 1
-  solver_seconds: 5
+  solver_seconds: 2
   value_per_downtime_hour: from_sessions   # expected sessions lost per hour at that charger x kWh x tariff
   parts_from_diagnosis: true               # bring the part the diagnosis expects
+
+planner:
+  # Beta pseudo-counts (successes, failures) for "this remote action ends the incident", by diagnosed
+  # remedy class, before the autopilot has seen any outcome. Read from the manuals' wording
+  # ("usually", "in about half the cases", "only delays the trip"), not measured; outcomes update them.
+  remedy_priors:
+    reset:                 {evse_reset: [6, 2], station_reset: [7, 1], unlock: [1, 6]}
+    unlock:                {evse_reset: [1, 4], station_reset: [1, 4], unlock: [5, 2]}
+    part:lock_actuator:    {evse_reset: [1, 6], station_reset: [1, 5], unlock: [4, 3]}
+    part:power_module:     {evse_reset: [1, 9], station_reset: [1, 8], unlock: [1, 9]}
+    part:rfid_reader:      {evse_reset: [1, 5], station_reset: [3, 3], unlock: [1, 9]}
+    part:payment_terminal: {evse_reset: [1, 5], station_reset: [3, 2], unlock: [1, 9]}
+    part:cable:            {evse_reset: [1, 9], station_reset: [1, 9], unlock: [1, 9]}
+    part:modem:            {evse_reset: [1, 9], station_reset: [1, 9], unlock: [1, 9]}
+    onsite_restart:        {evse_reset: [3, 3], station_reset: [4, 2], unlock: [1, 9]}
+    self_resolved:         {evse_reset: [2, 4], station_reset: [2, 4], unlock: [1, 9]}
+    firmware:              {evse_reset: [1, 9], station_reset: [1, 9], unlock: [1, 9]}
+    other:                 {evse_reset: [2, 4], station_reset: [2, 4], unlock: [1, 6]}
+  min_success_to_try: 0.2          # remote actions below this expected success are skipped
+  reader_weight: 0.6               # how much the LLM reading shifts the model's class probabilities
+  get_log_below_confidence: 0.6    # ask the charger for its diagnostic log when the reading is unsure
+  wait_if_self_resolving: {probability: 0.5, hours: 12, max_watch_hours: 96}
+  inoperative_below_usability: 0.3 # stop drivers trying a charger that mostly fails, until it is fixed
+  part_probability: 0.2            # bring every part at least this likely
+  kwh_per_session: {HPC: 35, DC: 25, AC: 12}   # EDRI's own session statistics (rounded)
+  dispatch_service_minutes: 90
+  preventive:
+    risk_threshold: 0.35
+    temperature_trend_c: 6.0       # a rising module temperature points to the power module
+    max_per_day: 10

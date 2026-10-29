@@ -31,6 +31,8 @@ dependencies = [
   "anthropic>=0.60",
   "openai>=1.99",
   "scipy>=1.16",
+  "sqlalchemy>=2.1.6",
+  "alembic>=1.20.1",
 ]
 
 [project.scripts]

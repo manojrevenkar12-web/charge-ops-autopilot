@@ -98,3 +98,12 @@ def test_firmware_only_through_an_approved_stage():
 def test_disabled_shield_allows_everything():
     v = FleetView(REF)
     assert Shield(v, enabled=False).check(Command("A", "set_all_operative"), 0).allowed
+
+
+def test_a_code_from_before_the_last_boot_does_not_block():
+    s, v = shield()
+    v.chargers["A"].codes.append((0, "0x1F01", "isolation monitor fault", 0))  # repaired since
+    v.chargers["A"].last_boot = 500  # the technician's power-up after the repair
+    assert s.check(Command("A", "evse_reset", 1, {"type": "OnIdle"}), 1000).allowed
+    v.chargers["A"].codes.append((600, "0x1F01", "isolation monitor fault", 0))  # re-reported after boot
+    assert not s.check(Command("A", "evse_reset", 1, {"type": "OnIdle"}), 1000).allowed

@@ -468,6 +468,15 @@ class Engine:
             self._go_online(c, t, boot=False)
         self._refresh(c, t)
 
+    def _report_active_problems(self, c: int, t: int) -> None:
+        """After a boot a station reports the problems it still has (its monitors fire again)."""
+        for ep in self.active[c]:
+            tripped = ep.kind == "power_module" and t >= ep.onset_end
+            if ep.kind in ("connector_lock", "isolation_fault") or tripped:
+                comp = "PowerModule" if tripped else ("Connector" if ep.evse else "ChargingStation")
+                self.emit(c, t, "NotifyEvent", evse=ep.evse, component=comp, variable="Problem", value=1.0,
+                          tech_code=self._code(ep, c), tech_info=self._vendor_info(ep, ep.remedy_u[-2]))
+
     def _go_offline(self, c: int, t: int) -> None:
         self.online[c] = False
 
@@ -486,6 +495,7 @@ class Engine:
                 tech_info=self.w.chargers["vendor"][c],
                 firmware=self.firmware[c],
             )
+            self._report_active_problems(c, t + 2)
         for row in self.queue[c]:  # the offline queue arrives now, with the original timestamps
             row["received"] = t
             for k in ocpp_flat.COLUMNS:
@@ -839,6 +849,7 @@ class Engine:
         for e in (1, 2):
             self.status[c][e] = ""
         self._refresh(c, t + 5)
+        self._report_active_problems(c, t + 2)
 
     def _do_unlock(self, t: int, c: int, evse: int, cmd: Command, rec: dict[str, Any]) -> None:
         if any(s.evse == evse and s.start <= t < s.end for s in self.sessions[c]):

@@ -95,7 +95,7 @@ detection:
 dispatch:
   stops_per_technician: 5
   horizon_days: 1
-  solver_seconds: 2
+  solver_seconds: 4
   value_per_downtime_hour: from_sessions   # expected sessions lost per hour at that charger x kWh x tariff
   parts_from_diagnosis: true               # bring the part the diagnosis expects
 

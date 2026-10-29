@@ -3,7 +3,8 @@
 Each job has a value (the downtime it ends: expected lost revenue and failed attempts until the next
 chance to fix it) and a service time; each technician leaves from home at the start of the workday
 and must be back by its end. The solver chooses which jobs to do and in which order, maximising the
-value collected minus the cost of driving. Jobs it drops stay in the queue for tomorrow."""
+value collected minus the cost of driving. Jobs it drops stay in the queue for tomorrow, so dropping is
+only worth it when the day is full."""
 
 from __future__ import annotations
 
@@ -12,6 +13,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from ortools.constraint_solver import pywrapcp, routing_enums_pb2
+
+DEFER_PENALTY = 1_000_000  # cents; far above any day's driving cost
 
 
 @dataclass
@@ -60,8 +63,11 @@ def plan_country(
 
     c_idx = routing.RegisterUnaryTransitVector([0] * nv + [1] * nj)
     routing.AddDimensionWithVehicleCapacity(c_idx, 0, [max_stops] * nv, True, "stops")
+    # A dropped job is not saved, only deferred: the charger still needs the visit and keeps failing drivers
+    # meanwhile. So every job carries a large penalty (do as many as fit), and its value decides which ones wait
+    # when technicians run out of day.
     for j, job in enumerate(jobs):
-        routing.AddDisjunction([mgr.NodeToIndex(nv + j)], int(round(job.value_eur * 100)))
+        routing.AddDisjunction([mgr.NodeToIndex(nv + j)], DEFER_PENALTY + int(round(job.value_eur * 100)))
     p = pywrapcp.DefaultRoutingSearchParameters()
     p.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PARALLEL_CHEAPEST_INSERTION
     p.local_search_metaheuristic = routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH

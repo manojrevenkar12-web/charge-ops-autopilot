@@ -161,7 +161,6 @@ class BaselinePolicy:
     def _work(self, t: Ticket, now: int) -> list[Command]:
         v = self.view
         cid = t.charger_id
-        cv = v.chargers[cid]
         if t.state == "recheck":
             if self._looks_fine(cid, since=t.due - self.cfg["recheck_after_hours"] * HOUR):
                 self.tickets.close(cid, now)
@@ -172,7 +171,7 @@ class BaselinePolicy:
         if not v.online(cid):
             t.state = "dispatch"
             return []
-        codes = " ".join(f"{c} {i}" for _, c, i, _ in cv.codes)
+        codes = " ".join(f"{c} {i}" for _, c, i, _ in v.active_codes(cid))
         safety = any(k in codes for k in ("ISO", "1F01", "GROUND", "F03", "IMD", "insulation"))
         if safety and unit(cid, now, "spot") < self.cfg["recognise_safety_code"]:
             t.state = "dispatch"

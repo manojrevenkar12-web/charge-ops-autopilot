@@ -312,11 +312,10 @@ class Autopilot:
         out = [dict(zip(mo.diagnosis.classes, map(float, row), strict=True)) for row in p]
         if mo.challenger is not None:
             q = mo.challenger.predict(df)
-            for d, row, cid in zip(out, q, df["charger_id"], strict=True):
+            for row, cid in zip(q, df["charger_id"], strict=True):
                 inc = self.incidents.get(cid)
                 if inc:
                     inc.shadow = dict(zip(mo.challenger.classes, map(float, row), strict=True))
-            del d
         return out
 
     def _belief(self, action: str, cls: str) -> tuple[float, float]:
@@ -334,8 +333,9 @@ class Autopilot:
         if not self.flags["reader"]:
             return None
         cv = self.view.chargers[inc.charger_id]
-        code = next((c for _, c, _, _ in reversed(cv.codes) if c), "")
-        info = next((i for _, _, i, _ in reversed(cv.codes) if i), "")
+        codes = self.view.active_codes(inc.charger_id)
+        code = next((c for _, c, _, _ in reversed(codes) if c), "")
+        info = next((i for _, _, i, _ in reversed(codes) if i), "")
         complaints = [t for ts, t in self.complaints.get(inc.charger_id, []) if ts >= inc.opened - DAY][-3:]
         log = self.logs.get(inc.charger_id) if inc.log_requested else None
         if not (code or info or complaints or log):

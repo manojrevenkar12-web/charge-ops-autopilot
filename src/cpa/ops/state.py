@@ -120,6 +120,12 @@ class FleetView:
                 v.failed_starts.append(pend.pop(0)[0])
 
     # ---------------------------------------------------------------- queries
+    def active_codes(self, cid: str) -> list[tuple[int, str, str, int]]:
+        """Codes reported since the charger last booted: a reboot clears what was fixed, and a station re-reports
+        a problem that is still there after it boots."""
+        v = self.chargers[cid]
+        return [c for c in v.codes if c[0] >= v.last_boot]
+
     def online(self, cid: str, now: int | None = None) -> bool:
         return (now or self.now) - self.chargers[cid].last_seen < 1.6 * HOUR
 

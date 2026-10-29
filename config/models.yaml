@@ -42,5 +42,6 @@ retraining:
 
 drift:
   psi_alert: 0.2
-  reference: training
+  reference: first rows the champion scored in service   # like for like; training rows are sampled differently
+  reference_rows: 600
   window_days: 3

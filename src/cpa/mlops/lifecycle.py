@@ -60,6 +60,8 @@ class ModelOps:
         }
         self.last_retrain = 0
         self.decision_rows: list[pl.DataFrame] = []
+        self.serving_ref: pl.DataFrame | None = None
+        self.serving_from = 0
 
     def _load(self, name: str, alias: str) -> ServedModel | None:
         v = self.reg.alias(name, alias)
@@ -219,7 +221,7 @@ class ModelOps:
                     self.reg.set_alias("diagnosis", "previous", old)
                 self.reg.set_alias("diagnosis", "champion", self.challenger.version)
                 self.diagnosis = self.challenger
-                self._ref_rows = getattr(self, "challenger_rows", getattr(self, "_ref_rows", None))  # drift ref
+                self.serving_ref, self.serving_from = None, len(self.decision_rows)  # a new baseline for drift
                 rec["promoted"] = True
             else:
                 rec["promoted"] = False
@@ -244,13 +246,22 @@ class ModelOps:
 
     # ---------------------------------------------------------------- drift
     def _drift(self, now: int) -> None:
-        """PSI of each numeric feature: rows the diagnosis model scored lately against the rows it was trained on."""
-        ref = getattr(self, "_ref_rows", None)
-        if self.diagnosis is None or ref is None or not self.decision_rows:
+        """PSI of each numeric feature: the rows the champion scored over the last days, against the first rows it
+        scored in service. Training rows are sampled differently (fixed incident ages, other policies' incidents), so
+        they would make every day look like drift; the champion's own early weeks are the like-for-like baseline."""
+        if self.diagnosis is None or not self.decision_rows:
+            return
+        rows = self.decision_rows[self.serving_from :]
+        if self.serving_ref is None:
+            n = sum(r.height for r in rows)
+            if n >= self.cfg["drift"]["reference_rows"]:
+                self.serving_ref = pl.concat(rows, how="diagonal_relaxed")
+                self.serving_from = len(self.decision_rows)
             return
         cur = pl.concat(self.decision_rows[-24 * self.cfg["drift"]["window_days"] :], how="diagonal_relaxed")
         if cur.height < 30:
             return
+        ref = self.serving_ref
         scores = {
             c: psi(ref[c].to_numpy().astype(float), cur[c].to_numpy().astype(float))
             for c in features.NUMERIC
@@ -264,6 +275,7 @@ class ModelOps:
                 "rows": cur.height,
                 "top": [{"feature": k, "psi": round(v, 3)} for k, v in top],
                 "alert": alert,
+                "champion": self.diagnosis.version,
             }
         )
 

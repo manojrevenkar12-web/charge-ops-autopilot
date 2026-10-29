@@ -19,9 +19,7 @@ def policy(use_case: str) -> str:
     root = ET.Element("policies")
     inbound = ET.SubElement(root, "inbound")
     ET.SubElement(inbound, "base")
-    ET.SubElement(inbound, "set-header", {"name": "x-use-case", "exists-action": "override"}).append(
-        _value(use_case)
-    )
+    ET.SubElement(inbound, "set-header", {"name": "x-use-case", "exists-action": "override"}).append(_value(use_case))
     ET.SubElement(inbound, "llm-content-safety", {"backend-id": "content-safety", "shield-prompt": "true"})
     ET.SubElement(
         inbound,

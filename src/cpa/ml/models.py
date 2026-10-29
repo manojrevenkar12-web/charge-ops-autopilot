@@ -150,9 +150,7 @@ def evaluate_diagnosis(m: TrainedModel, va: pl.DataFrame) -> dict[str, Any]:
     for mdl in sorted(va["model"].unique().to_list()):
         sel = (va["model"] == mdl).to_numpy()
         if sel.sum() >= 15:
-            out["by_model"][mdl] = float(
-                f1_score(y[sel], pred[sel], average="macro", labels=np.unique(y[sel]))
-            )
+            out["by_model"][mdl] = float(f1_score(y[sel], pred[sel], average="macro", labels=np.unique(y[sel])))
     return out
 
 
@@ -187,9 +185,7 @@ def evaluate_risk(m: TrainedModel, va: pl.DataFrame) -> dict[str, Any]:
     p = m.predict(va)[:, 1]
     y = va["y"].to_numpy()
     k = max(1, int(round(len(y) / max(va["hour"].n_unique(), 1) * 0.02)))  # top 2% of chargers each day
-    days = va.with_columns(p=pl.Series(p)).with_columns(
-        rank=pl.col("p").rank("ordinal", descending=True).over("hour")
-    )
+    days = va.with_columns(p=pl.Series(p)).with_columns(rank=pl.col("p").rank("ordinal", descending=True).over("hour"))
     top = days.filter(pl.col("rank") <= k)
     return {
         "rows": len(y),
@@ -207,9 +203,7 @@ def to_onnx(m: TrainedModel) -> bytes:
     from onnxmltools.convert.common.data_types import FloatTensorType
 
     n = len(m.encoder.columns)
-    onx = convert_lightgbm(
-        m.booster, initial_types=[("x", FloatTensorType([None, n]))], zipmap=False, target_opset=15
-    )
+    onx = convert_lightgbm(m.booster, initial_types=[("x", FloatTensorType([None, n]))], zipmap=False, target_opset=15)
     return onx.SerializeToString()
 
 
@@ -226,11 +220,7 @@ def onnx_check(
     native = m.predict(sample)
     out = sess.run(None, {"x": x})
     probs = out[1] if len(out) > 1 else out[0]
-    probs = (
-        probs
-        if probs.ndim == 2 and probs.shape[1] == native.shape[1]
-        else np.column_stack([1 - probs, probs])
-    )
+    probs = probs if probs.ndim == 2 and probs.shape[1] == native.shape[1] else np.column_stack([1 - probs, probs])
     absdiff = np.abs(probs - native).max(1)
     diff = float(absdiff.max())
     agree = float((probs.argmax(1) == native.argmax(1)).mean())

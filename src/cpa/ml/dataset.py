@@ -43,9 +43,7 @@ def actions_of(msgs: pl.DataFrame) -> pl.DataFrame:
 def prepare(observed: Path) -> Prepared:
     cache = observed / "prepared"
     if (cache / "hourly.parquet").exists():
-        return Prepared(
-            *(pl.read_parquet(cache / f"{k}.parquet") for k in ("hourly", "status", "actions", "visits"))
-        )
+        return Prepared(*(pl.read_parquet(cache / f"{k}.parquet") for k in ("hourly", "status", "actions", "visits")))
     m = pl.read_parquet(observed / "messages.parquet")
     p = Prepared(
         signals.hourly(m),

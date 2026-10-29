@@ -51,12 +51,19 @@ packages = ["src/cpa"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-markers = ["db: needs PostgreSQL and Redis", "slow: builds the world"]
+markers = ["db: needs PostgreSQL", "slow: simulates days of the fleet"]
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff]
-line-length = 110
+line-length = 120
 target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
-ignore = ["RUF001", "RUF002", "RUF003"]
+ignore = ["RUF001", "RUF002", "RUF003", "RUF046"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/cpa/sim/texts.py" = ["E501"]   # sentences in ten languages
+"src/cpa/gateway/prompts.py" = ["E501"]
+"src/cpa/gateway/providers.py" = ["E501"]   # complaint phrases in ten languages
+"tests/*" = ["RUF059"]

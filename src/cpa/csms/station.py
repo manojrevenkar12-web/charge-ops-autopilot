@@ -32,9 +32,7 @@ CODES = {
 
 
 class Station(ChargePoint):
-    def __init__(
-        self, sid: str, ws: Any, clock: Clock, model: str = "DC-150", firmware: str = "2.12.1"
-    ) -> None:
+    def __init__(self, sid: str, ws: Any, clock: Clock, model: str = "DC-150", firmware: str = "2.12.1") -> None:
         super().__init__(sid, ws, response_timeout=10)
         self.clock, self.model, self.firmware = clock, model, firmware
         self.faults: set[str] = set()
@@ -46,9 +44,7 @@ class Station(ChargePoint):
         self._tx = itertools.count(1)
 
     async def send(self, flat: dict[str, Any]) -> Any:
-        action, payload = ocpp_flat.to_payload(
-            {c: None for c in ocpp_flat.COLUMNS} | {"ts": self.clock.now()} | flat
-        )
+        action, payload = ocpp_flat.to_payload({c: None for c in ocpp_flat.COLUMNS} | {"ts": self.clock.now()} | flat)
         req = getattr(call, action)(**camel_to_snake_case(payload))
         return await self.call(req)
 

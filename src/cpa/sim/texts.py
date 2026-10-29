@@ -277,11 +277,7 @@ def complaint(kind: str, lang: str, cid: str, u: float) -> str:
     if u < 0.4:  # people leave their details
         name = NAMES[int(u * 1000) % len(NAMES)]
         phone = f"+49 17{int(u * 1e7) % 10} {int(u * 1e9) % 10_000_000:07d}"
-        text += (
-            f" {name}, {phone}"
-            if u < 0.2
-            else f" {name.split()[0].lower()}.{name.split()[1].lower()}@example.com"
-        )
+        text += f" {name}, {phone}" if u < 0.2 else f" {name.split()[0].lower()}.{name.split()[1].lower()}@example.com"
     return text
 
 

@@ -98,9 +98,7 @@ def summarise(fleets: dict[str, Any]) -> dict[str, Any]:
         "fleets": len(fleets),
         "completed": len(ok),
         "gate_passed": sum(1 for v in ok.values() if v["gate"]["passed"]),
-        "failed_checks": {
-            k: [c["id"] for c in v["gate"]["checks"] if not c["passed"]] for k, v in ok.items()
-        },
+        "failed_checks": {k: [c["id"] for c in v["gate"]["checks"] if not c["passed"]] for k, v in ok.items()},
         "true_availability": pair(lambda r: round(r["availability"]["true"], 4)),
         "charging_success": pair(lambda r: round(r["drivers"]["charging_success_rate"], 4)),
         "field_cost_eur": pair(lambda r: round(r["field"]["cost_eur"])),

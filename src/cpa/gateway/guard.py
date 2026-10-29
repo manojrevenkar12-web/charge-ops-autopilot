@@ -95,11 +95,7 @@ def check_output(schema: str, out: Any, report: GuardReport) -> bool:
         if out.get("first_action") not in allowed:
             report.output_errors.append(f"action {out.get('first_action')!r} not allowed")
         for s in out.get("suspected", []):
-            if not (
-                isinstance(s, dict)
-                and isinstance(s.get("remedy"), str)
-                and isinstance(s.get("p"), int | float)
-            ):
+            if not (isinstance(s, dict) and isinstance(s.get("remedy"), str) and isinstance(s.get("p"), int | float)):
                 report.output_errors.append("bad suspected entry")
                 break
     return not report.output_errors

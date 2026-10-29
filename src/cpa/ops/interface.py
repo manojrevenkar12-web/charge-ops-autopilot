@@ -15,7 +15,9 @@ class Observation:
     now: int  # end of the hour just simulated (epoch seconds)
     messages: pl.DataFrame  # OCPP rows received in the hour (ocpp_flat.SCHEMA)
     complaints: pl.DataFrame  # ts, charger_id, lang, text
-    visits: pl.DataFrame  # technicians' reports: visit_id, tech_id, charger_id, ts, outcome, part_used, part_needed, part_eta, lang, note, cost_eur
+    # technicians' reports: visit_id, tech_id, charger_id, ts, outcome, part_used, part_needed, part_eta, lang,
+    # note, cost_eur
+    visits: pl.DataFrame
     logs: pl.DataFrame  # diagnostic logs uploaded after GetLog: ts, charger_id, text
 
 

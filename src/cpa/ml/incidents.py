@@ -36,22 +36,14 @@ SYMPTOMS = ["sym_faulted", "sym_offline", "sym_starts", "sym_evcomm", "sym_rfid"
 def next_good(f: pl.DataFrame) -> pl.DataFrame:
     """For every charger-hour, the next later hour with a good session (null if none yet). Needs the full grid."""
     return f.with_columns(
-        next_good=pl.when(pl.col("tx_good") > 0)
-        .then(pl.col("hour"))
-        .shift(-1)
-        .backward_fill()
-        .over("charger_id")
+        next_good=pl.when(pl.col("tx_good") > 0).then(pl.col("hour")).shift(-1).backward_fill().over("charger_id")
     )
 
 
 def detect(f: pl.DataFrame, last_hour: int) -> pl.DataFrame:
     """Incidents from symptomatic charger-hours (with `next_good`): onset, last symptomatic hour, closed or not.
     A new incident starts only after the previous one closed: a quiet day containing a good session."""
-    s = (
-        f.filter(pl.col("symptom"))
-        .select("charger_id", "hour", "next_good", *SYMPTOMS)
-        .sort("charger_id", "hour")
-    )
+    s = f.filter(pl.col("symptom")).select("charger_id", "hour", "next_good", *SYMPTOMS).sort("charger_id", "hour")
     s = s.with_columns(
         prev=pl.col("hour").shift(1).over("charger_id"),
         prev_good=pl.col("next_good").shift(1).over("charger_id"),
@@ -123,9 +115,7 @@ def label(
             if aa is not None:
                 w = aa.filter((pl.col("at") >= lo) & (pl.col("at") <= hi)).sort("at")
                 if w.height:
-                    lab = {"Reset": "reset", "UnlockConnector": "unlock", "UpdateFirmware": "firmware"}[
-                        w["action"][-1]
-                    ]
+                    lab = {"Reset": "reset", "UnlockConnector": "unlock", "UpdateFirmware": "firmware"}[w["action"][-1]]
         labels.append(lab)
     return incidents.with_columns(label=pl.Series(labels, dtype=pl.Utf8))
 
@@ -141,9 +131,7 @@ def risk_labels(f: pl.DataFrame, horizon_h: int = 48, at_hour_utc: int = 6) -> p
         .shift(-1)
         .over("charger_id")
     )
-    rows = f.filter(
-        (pl.col("hour") % 24 == at_hour_utc) & (pl.col("faulted_now") == 0) & (pl.col("hours_silent") < 2)
-    )
+    rows = f.filter((pl.col("hour") % 24 == at_hour_utc) & (pl.col("faulted_now") == 0) & (pl.col("hours_silent") < 2))
     return (
         rows.join(fut.select("charger_id", "hour", "ahead"), on=["charger_id", "hour"], how="left")
         .with_columns(y=pl.col("ahead").fill_null(0).cast(pl.Int8))

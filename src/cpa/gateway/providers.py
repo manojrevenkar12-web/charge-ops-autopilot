@@ -20,9 +20,7 @@ from . import prompts
 class Provider(Protocol):
     name: str
 
-    def complete(
-        self, model: str, use_case: str, fields: dict[str, Any], max_tokens: int
-    ) -> tuple[str, int, int]:
+    def complete(self, model: str, use_case: str, fields: dict[str, Any], max_tokens: int) -> tuple[str, int, int]:
         """Returns (raw text, input tokens, output tokens)."""
         ...
 
@@ -79,9 +77,7 @@ INJECTED_ACTION = [
 class SimulatedProvider:
     name = "simulated"
 
-    def complete(
-        self, model: str, use_case: str, fields: dict[str, Any], max_tokens: int
-    ) -> tuple[str, int, int]:
+    def complete(self, model: str, use_case: str, fields: dict[str, Any], max_tokens: int) -> tuple[str, int, int]:
         prompt = prompts.render(use_case, fields)
         tin = estimate_tokens(prompt)
         out = getattr(self, "_" + use_case.replace("-", "_"))(fields)
@@ -89,9 +85,7 @@ class SimulatedProvider:
         return text, tin, estimate_tokens(text)
 
     def _incident_reader(self, f: dict[str, Any]) -> dict[str, Any]:
-        untrusted = " ".join(
-            [f.get("tech_info") or "", f.get("log") or "", " ".join(f.get("complaints") or [])]
-        )
+        untrusted = " ".join([f.get("tech_info") or "", f.get("log") or "", " ".join(f.get("complaints") or [])])
         low = untrusted.lower()
         for marker, action in INJECTED_ACTION:  # a naive model does what the text says
             if marker in low:
@@ -127,9 +121,7 @@ class SimulatedProvider:
         if SAFETY.search(f.get("tech_info") or "") or SAFETY.search(f.get("log") or ""):
             safety = True
         total = sum(scores.values())
-        suspected = [
-            {"remedy": k, "p": round(v / total, 3)} for k, v in sorted(scores.items(), key=lambda kv: -kv[1])
-        ]
+        suspected = [{"remedy": k, "p": round(v / total, 3)} for k, v in sorted(scores.items(), key=lambda kv: -kv[1])]
         conf = min(0.95, 0.35 + 0.15 * total) if total else 0.2
         first = "wait"
         if safety:
@@ -166,9 +158,7 @@ class AnthropicProvider:
 
         self.client = anthropic.Anthropic(base_url=os.environ.get("ANTHROPIC_BASE_URL"))
 
-    def complete(
-        self, model: str, use_case: str, fields: dict[str, Any], max_tokens: int
-    ) -> tuple[str, int, int]:
+    def complete(self, model: str, use_case: str, fields: dict[str, Any], max_tokens: int) -> tuple[str, int, int]:
         r = self.client.messages.create(
             model=model,
             max_tokens=max_tokens,
@@ -189,9 +179,7 @@ class AzureFoundryProvider:
 
         self.client = OpenAI(base_url=os.environ["AZURE_AI_ENDPOINT"], api_key=os.environ["AZURE_AI_KEY"])
 
-    def complete(
-        self, model: str, use_case: str, fields: dict[str, Any], max_tokens: int
-    ) -> tuple[str, int, int]:
+    def complete(self, model: str, use_case: str, fields: dict[str, Any], max_tokens: int) -> tuple[str, int, int]:
         r = self.client.chat.completions.create(
             model=model,
             max_tokens=max_tokens,

@@ -86,9 +86,7 @@ class Shield:
     def _no_reset_on_insulation_fault(self, cmd: Command, now: int, r: dict[str, Any]) -> bool:
         cv = self.view.chargers[cmd.charger_id]
         for _, code, info, _ in cv.codes:
-            if code in r["block_if_codes"] or any(
-                w.lower() in (info or "").lower() for w in r["block_if_text"]
-            ):
+            if code in r["block_if_codes"] or any(w.lower() in (info or "").lower() for w in r["block_if_text"]):
                 return False
         return not cmd.params.get("safety_concern", False)
 

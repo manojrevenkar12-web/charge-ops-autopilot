@@ -77,9 +77,7 @@ def test_payload_passes_the_official_schema(row):
     asyncio.run(validate_payload(Call("1", action, payload), "2.0.1"))
 
 
-@pytest.mark.parametrize(
-    "row", [r for r in ROWS if r.get("direction", "cp") == "cp"], ids=lambda r: r["action"]
-)
+@pytest.mark.parametrize("row", [r for r in ROWS if r.get("direction", "cp") == "cp"], ids=lambda r: r["action"])
 def test_round_trip(row):
     r = full(row)
     action, payload = ocpp_flat.to_payload(r)

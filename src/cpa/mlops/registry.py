@@ -63,9 +63,7 @@ class Registry:
             else self.client.create_experiment(exp, artifact_location=(self.root / "artifacts").as_uri())
         )
 
-    def register(
-        self, m: TrainedModel, onnx_bytes: bytes, checks: dict[str, Any], tags: dict[str, str]
-    ) -> str:
+    def register(self, m: TrainedModel, onnx_bytes: bytes, checks: dict[str, Any], tags: dict[str, str]) -> str:
         name = m.kind
         with tempfile.TemporaryDirectory() as td:
             d = Path(td)
@@ -124,21 +122,15 @@ class Registry:
 
         mv = self.client.get_model_version(name, version)
         local = Path(
-            self.mlflow.artifacts.download_artifacts(
-                run_id=mv.run_id, artifact_path="model", tracking_uri=self.uri
-            )
+            self.mlflow.artifacts.download_artifacts(run_id=mv.run_id, artifact_path="model", tracking_uri=self.uri)
         )
         meta = json.loads((local / "meta.json").read_text())
         so = ort.SessionOptions()
         so.intra_op_num_threads = 1
         so.log_severity_level = 3
-        sess = ort.InferenceSession(
-            (local / "model.onnx").read_bytes(), so, providers=["CPUExecutionProvider"]
-        )
+        sess = ort.InferenceSession((local / "model.onnx").read_bytes(), so, providers=["CPUExecutionProvider"])
         booster = lgb.Booster(model_file=str(local / "model.txt"))
-        return ServedModel(
-            name, version, meta["classes"], Encoder.from_json(meta["encoder"]), sess, booster, meta
-        )
+        return ServedModel(name, version, meta["classes"], Encoder.from_json(meta["encoder"]), sess, booster, meta)
 
     def versions(self, name: str) -> list[dict[str, Any]]:
         out = []

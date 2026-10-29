@@ -23,9 +23,7 @@ def write_reference(w: W.World, dest: Path) -> None:
     w.chargers.select(
         ["charger_id", "site_id", "country", "model", "vendor", "kind", "kw", "connectors", "firmware"]
     ).write_parquet(dest / "chargers.parquet")
-    w.sites.select(["site_id", "country", "lat", "lon", "utc_offset", "motorway"]).write_parquet(
-        dest / "sites.parquet"
-    )
+    w.sites.select(["site_id", "country", "lat", "lon", "utc_offset", "motorway"]).write_parquet(dest / "sites.parquet")
     w.technicians.write_parquet(dest / "technicians.parquet")
 
 

@@ -169,9 +169,7 @@ class CSMS:
             rec["result"] = "NotConnected"
         else:
             action = type(payload).__name__
-            await self.record(
-                cmd.charger_id, action, ocpp_flat.to_payload(_flat_of(cmd, now))[1], f"c{now}", "cs"
-            )
+            await self.record(cmd.charger_id, action, ocpp_flat.to_payload(_flat_of(cmd, now))[1], f"c{now}", "cs")
             try:
                 res = await link.call(payload, suppress=False)
                 rec["result"] = str(getattr(res, "status", "Accepted"))
@@ -203,9 +201,7 @@ class CSMS:
             return call.UnlockConnector(evse_id=cmd.evse or 1, connector_id=1)
         if a in ("set_inoperative", "set_operative"):
             st = (
-                OperationalStatusEnumType.inoperative
-                if a == "set_inoperative"
-                else OperationalStatusEnumType.operative
+                OperationalStatusEnumType.inoperative if a == "set_inoperative" else OperationalStatusEnumType.operative
             )
             return call.ChangeAvailability(operational_status=st, evse={"id": cmd.evse} if cmd.evse else None)
         if a == "get_log":

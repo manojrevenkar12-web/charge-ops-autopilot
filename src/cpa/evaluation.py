@@ -86,9 +86,7 @@ def evaluate_run(run: Path) -> dict[str, Any]:
         "turned_away_unavailable": unseen,
         "charging_success_rate": ok / max(ok + failed, 1),
         "lost_revenue_eur": (failed * (1 - cfg["drivers"]["retry_after_failure"]) + unseen) * kwh * price,
-        "failures_by_cause": dict(
-            sess.filter(pl.col("outcome").is_in(FAILS)).group_by("cause").len().iter_rows()
-        ),
+        "failures_by_cause": dict(sess.filter(pl.col("outcome").is_in(FAILS)).group_by("cause").len().iter_rows()),
     }
     vt = d["visits"].filter((pl.col("ts") >= s0) & (pl.col("ts") < s1))
     out["field"] = {
@@ -149,9 +147,7 @@ def _incident_quality(d: dict[str, Any], s0: int, s1: int) -> dict[str, Any]:
         e = by_c.get((i["charger_id"],))
         hit = None
         if e is not None:
-            m = e.filter(
-                (pl.col("start") <= i["opened"]) & (pl.col("end").fill_null(10**12) >= i["opened"] - 3600)
-            )
+            m = e.filter((pl.col("start") <= i["opened"]) & (pl.col("end").fill_null(10**12) >= i["opened"] - 3600))
             if m.height:
                 hit = m.sort("start").row(-1, named=True)
         if hit is None:

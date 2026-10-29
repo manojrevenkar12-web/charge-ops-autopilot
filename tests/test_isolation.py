@@ -45,18 +45,12 @@ def test_shipping_code_does_not_import_the_simulator_or_evaluation():
                 if node.level and any(a.name in ("sim", "evaluation") for a in node.names):
                     bad.append(f"{f.relative_to(SRC)}: from {mod} import sim/evaluation")
             elif isinstance(node, ast.Import):
-                bad += [
-                    f"{f.relative_to(SRC)}: {a.name}"
-                    for a in node.names
-                    if a.name.startswith(FORBIDDEN_IMPORTS)
-                ]
+                bad += [f"{f.relative_to(SRC)}: {a.name}" for a in node.names if a.name.startswith(FORBIDDEN_IMPORTS)]
     assert not bad, bad
 
 
 def test_shipping_code_does_not_name_the_truth():
-    bad = [
-        f"{f.relative_to(SRC)}: {t}" for f in shipping_files() for t in FORBIDDEN_TEXT if t in f.read_text()
-    ]
+    bad = [f"{f.relative_to(SRC)}: {t}" for f in shipping_files() for t in FORBIDDEN_TEXT if t in f.read_text()]
     assert not bad, bad
 
 

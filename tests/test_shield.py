@@ -41,10 +41,7 @@ def test_insulation_code_blocks_any_reset():
     s, v = shield()
     v.chargers["A"].codes.append((0, "0x1F01", "isolation monitor fault", 0))
     for a in ("evse_reset", "station_reset"):
-        assert (
-            "no-reset-on-insulation-fault"
-            in s.check(Command("A", a, 1, {"station_level": True}), 100).blocked_by
-        )
+        assert "no-reset-on-insulation-fault" in s.check(Command("A", a, 1, {"station_level": True}), 100).blocked_by
 
 
 def test_insulation_wording_blocks_even_without_a_known_code():
@@ -57,12 +54,9 @@ def test_immediate_reset_waits_for_running_session_onidle_does_not():
     s, v = shield()
     v.chargers["A"].open_tx["t"] = (1, 50)
     assert (
-        "no-reset-during-transaction"
-        in s.check(Command("A", "evse_reset", 1, {"type": "Immediate"}), 100).blocked_by
+        "no-reset-during-transaction" in s.check(Command("A", "evse_reset", 1, {"type": "Immediate"}), 100).blocked_by
     )
-    assert s.check(
-        Command("A", "evse_reset", 2, {"type": "Immediate"}), 100
-    ).allowed  # the other EVSE is free
+    assert s.check(Command("A", "evse_reset", 2, {"type": "Immediate"}), 100).allowed  # the other EVSE is free
     assert s.check(Command("A", "evse_reset", 1, {"type": "OnIdle"}), 100).allowed
 
 

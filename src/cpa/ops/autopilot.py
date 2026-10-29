@@ -176,10 +176,7 @@ class Autopilot:
         decide = [
             i
             for i in self.incidents.values()
-            if i.state in ("open", "waiting")
-            and i.pending is None
-            and i.proposal is None
-            and now >= i.wait_until
+            if i.state in ("open", "waiting") and i.pending is None and i.proposal is None and now >= i.wait_until
         ]
         if decide:
             df = pl.DataFrame([frows[i.charger_id] for i in decide]).with_columns(
@@ -298,9 +295,7 @@ class Autopilot:
                 self.ladder.observe(p["action"], cv.model, success, now)
                 self._learn(p["action"], p["cls"], success)
             inc.pending = None
-            inc.decisions.append(
-                {"ts": now, "outcome": "worked" if success else "did not work", "action": p["action"]}
-            )
+            inc.decisions.append({"ts": now, "outcome": "worked" if success else "did not work", "action": p["action"]})
             if success:
                 inc.resolution = p["action"]
                 inc.state, inc.watch_since = "watch", now  # wait for the quiet day that closes it
@@ -335,9 +330,7 @@ class Autopilot:
         a, b = self._belief(action, cls)
         self.beliefs[(action, cls)] = [a + success, b + (not success)]
 
-    def _read(
-        self, inc: Incident, row: dict[str, Any], now: int, probs: dict[str, float]
-    ) -> dict[str, Any] | None:
+    def _read(self, inc: Incident, row: dict[str, Any], now: int, probs: dict[str, float]) -> dict[str, Any] | None:
         if not self.flags["reader"]:
             return None
         cv = self.view.chargers[inc.charger_id]
@@ -363,9 +356,7 @@ class Autopilot:
         try:
             r = self.gateway.call("incident-reader", fields, now=now, caller=inc.id)
         except GatewayError as e:
-            inc.decisions.append(
-                {"ts": now, "note": f"reader unavailable ({e.kind}); deciding from the model"}
-            )
+            inc.decisions.append({"ts": now, "note": f"reader unavailable ({e.kind}); deciding from the model"})
             return None
         out = dict(r.output)
         out["_quarantined"] = len(r.guard.quarantined)
@@ -430,9 +421,7 @@ class Autopilot:
             return []
         # 2. waiting may be the cheapest fix; and a quiet charger that only *looks* odd is watched, not visited
         ws = self.pcfg["wait_if_self_resolving"]
-        likely_parts = [
-            k for k, v in combined.items() if k.startswith("part:") and v >= self.pcfg["part_probability"]
-        ]
+        likely_parts = [k for k, v in combined.items() if k.startswith("part:") and v >= self.pcfg["part_probability"]]
         failing = (
             (row.get("failed_starts_24") or 0) + (row.get("evcomm_fail_24") or 0) > 0
             or (row.get("faulted_now") or 0) > 0
@@ -468,10 +457,7 @@ class Autopilot:
                     continue
                 if a == "station_reset" and "evse_reset" not in tried and not station_level:
                     continue  # the runbook (and the shield) want the EVSE first
-                p = sum(
-                    pc * (lambda ab: ab[0] / (ab[0] + ab[1]))(self._belief(a, c))
-                    for c, pc in combined.items()
-                )
+                p = sum(pc * (lambda ab: ab[0] / (ab[0] + ab[1]))(self._belief(a, c)) for c, pc in combined.items())
                 options.append((p, a))
             options.sort(reverse=True)
             if options and options[0][0] >= self.pcfg["min_success_to_try"]:
@@ -481,14 +467,9 @@ class Autopilot:
                 params |= {"station_level": station_level, "safety_concern": safety}
                 cmd = Command(cid, a, evse, params, reason=f"P(works)={p:.2f}; likely {top}", incident=inc.id)
                 out = self._issue(inc, cmd, now, cls=top)
-                inc.decisions.append(
-                    note | {"decision": f"{a} (expected success {p:.2f})", "sent": bool(out)}
-                )
+                inc.decisions.append(note | {"decision": f"{a} (expected success {p:.2f})", "sent": bool(out)})
                 return out
-            if (
-                not inc.log_requested
-                and float(reading.get("confidence", 0)) < self.pcfg["get_log_below_confidence"]
-            ):
+            if not inc.log_requested and float(reading.get("confidence", 0)) < self.pcfg["get_log_below_confidence"]:
                 inc.log_requested = True
                 cmd = Command(
                     cid,
@@ -521,15 +502,11 @@ class Autopilot:
                 and not inc.inoperative
                 and online
             ):
-                cmd = Command(
-                    cid, "set_inoperative", 0, {}, reason="mostly failing until repaired", incident=inc.id
-                )
+                cmd = Command(cid, "set_inoperative", 0, {}, reason="mostly failing until repaired", incident=inc.id)
                 cmds.extend(self._issue(inc, cmd, now, cls=top, track=False))
         return cmds
 
-    def _llm_decides(
-        self, inc: Incident, reading: dict[str, Any], note: dict[str, Any], now: int
-    ) -> list[Command]:
+    def _llm_decides(self, inc: Incident, reading: dict[str, Any], note: dict[str, Any], now: int) -> list[Command]:
         """Positive control, not a design: the model's recommended action is executed as it stands, with no
         planner, shield or approval in between. The evaluation must see the harm this does."""
         a = reading.get("first_action") or "dispatch"
@@ -618,9 +595,7 @@ class Autopilot:
             inc.proposal = None
             v = self.shield.check(cmd, now)  # the world may have changed since it was proposed
             if not v.allowed:
-                inc.decisions.append(
-                    {"ts": now, "blocked": cmd.action, "rules": v.blocked_by, "after": "approval"}
-                )
+                inc.decisions.append({"ts": now, "blocked": cmd.action, "rules": v.blocked_by, "after": "approval"})
                 if cmd.action in REMOTE:
                     inc.tried.append((cmd.action, now, cmd.evse))
                 continue
@@ -668,9 +643,7 @@ class Autopilot:
         sites = {r["site_id"]: r for r in self.sites.iter_rows(named=True)}
         hour = now // HOUR - 1
         for inc in self.incidents.values():
-            if inc.state == "dispatch" or (
-                inc.state == "part" and (inc.part_eta or 0) <= day_start + 8 * HOUR
-            ):
+            if inc.state == "dispatch" or (inc.state == "part" and (inc.part_eta or 0) <= day_start + 8 * HOUR):
                 cv = self.view.chargers[inc.charger_id]
                 quiet = (
                     hour - inc.last_symptom_hour >= 6
@@ -684,9 +657,7 @@ class Autopilot:
                     continue
                 s = sites[cv.site_id]
                 age_h = (now - inc.opened) / HOUR
-                value = (
-                    inc.value_per_hour * 24 * (1 + min(age_h / 72, 2))
-                )  # a day of downtime, more for old ones
+                value = inc.value_per_hour * 24 * (1 + min(age_h / 72, 2))  # a day of downtime, more for old ones
                 jobs.append(
                     Job(
                         inc.id,
@@ -759,9 +730,7 @@ class Autopilot:
             if cid in self.incidents:
                 continue
             self.n += 1
-            inc = Incident(
-                f"AP-{self.n:05d}", cid, now, hour, hour, {"risk"}, state="dispatch", preventive=True
-            )
+            inc = Incident(f"AP-{self.n:05d}", cid, now, hour, hour, {"risk"}, state="dispatch", preventive=True)
             inc.parts = ["power_module"]
             inc.value_per_hour = self._value_per_hour(r)
             self.incidents[cid] = inc
@@ -903,8 +872,7 @@ class Autopilot:
                     "rate": a.rate,
                     "peer_rate": a.peer_rate,
                     "stages": [
-                        {k: v for k, v in s.items() if k != "chargers"} | {"n": len(s["chargers"])}
-                        for s in a.stages
+                        {k: v for k, v in s.items() if k != "chargers"} | {"n": len(s["chargers"])} for s in a.stages
                     ],
                 }
                 for a in self.alerts

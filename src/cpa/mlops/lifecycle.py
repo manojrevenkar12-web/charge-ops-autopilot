@@ -99,11 +99,7 @@ class ModelOps:
         if (now // HOUR) % 24 == 3:
             self._drift(now)
             dow = ((now // DAY) + 3) % 7  # 1970-01-01 was a Thursday
-            if (
-                self.retrain_enabled
-                and dow == self.cfg["retraining"]["weekday"]
-                and now - self.last_retrain > 3 * DAY
-            ):
+            if self.retrain_enabled and dow == self.cfg["retraining"]["weekday"] and now - self.last_retrain > 3 * DAY:
                 self._retrain(now)
 
     # ---------------------------------------------------------------- retraining and promotion
@@ -121,14 +117,10 @@ class ModelOps:
             )
             if parts["status"] is not None
             else hist.status,
-            pl.concat(
-                [hist.actions.filter(pl.col("ts") < start * HOUR), parts["actions"]], how="diagonal_relaxed"
-            )
+            pl.concat([hist.actions.filter(pl.col("ts") < start * HOUR), parts["actions"]], how="diagonal_relaxed")
             if parts["actions"] is not None
             else hist.actions,
-            pl.concat(
-                [hist.visits.filter(pl.col("ts") < start * HOUR), parts["visits"]], how="diagonal_relaxed"
-            )
+            pl.concat([hist.visits.filter(pl.col("ts") < start * HOUR), parts["visits"]], how="diagonal_relaxed")
             if parts["visits"] is not None
             else hist.visits,
         )
@@ -169,9 +161,7 @@ class ModelOps:
             "candidate_pr_auc": rverdict["candidate"].get("pr_auc"),
             "champion_pr_auc": rverdict["champion"].get("pr_auc"),
         }
-        if rverdict[
-            "passed"
-        ]:  # the risk model only ranks preventive visits: it is promoted after the offline gate
+        if rverdict["passed"]:  # the risk model only ranks preventive visits: it is promoted after the offline gate
             v = self.reg.register(rcand, ronx, rchecks, {"trained_at": str(now), "run": self.policy.name})
             old = self.reg.alias("risk", "champion")
             if old:

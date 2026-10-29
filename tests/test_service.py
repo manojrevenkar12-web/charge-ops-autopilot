@@ -10,7 +10,7 @@ from tests.test_models import table
 
 class FakeServed:
     version = "7"
-    classes = ["reset", "self_resolved"]
+    classes = ("reset", "self_resolved")
 
     def __init__(self):
         from cpa.ml.models import Encoder

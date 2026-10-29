@@ -75,9 +75,7 @@ class LiveLoop:
         obs = Observation(now=hi, messages=msgs, **{k: pl.DataFrame(schema=v) for k, v in EMPTY.items()})
         for cmd in self.policy.on_hour(obs):
             verdict = (
-                self.policy.shield.log[-1]
-                if getattr(self.policy, "shield", None) and self.policy.shield.log
-                else {}
+                self.policy.shield.log[-1] if getattr(self.policy, "shield", None) and self.policy.shield.log else {}
             )
             result = await self.csms.send(cmd, verdict)
             self.sent.append((cmd.charger_id, cmd.action, result))

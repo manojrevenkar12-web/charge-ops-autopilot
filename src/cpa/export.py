@@ -53,21 +53,15 @@ def incidents(run: str = "autopilot", limit: int = 400) -> list[dict[str, Any]]:
     s0 = meta.get("scored_from", 0)
     shield = _read(d / "ops" / "shield.json") or []
     cmds = (
-        pl.read_parquet(d / "observed" / "commands.parquet")
-        if (d / "observed" / "commands.parquet").exists()
-        else None
+        pl.read_parquet(d / "observed" / "commands.parquet") if (d / "observed" / "commands.parquet").exists() else None
     )
     visits = (
-        pl.read_parquet(d / "observed" / "visits.parquet")
-        if (d / "observed" / "visits.parquet").exists()
-        else None
+        pl.read_parquet(d / "observed" / "visits.parquet") if (d / "observed" / "visits.parquet").exists() else None
     )
     ref = pl.read_parquet(settings.OBSERVED / "reference" / "chargers.parquet")
     info = {r["charger_id"]: r for r in ref.iter_rows(named=True)}
     episodes = (
-        pl.read_parquet(d / "truth" / "episodes.parquet")
-        if (d / "truth" / "episodes.parquet").exists()
-        else None
+        pl.read_parquet(d / "truth" / "episodes.parquet") if (d / "truth" / "episodes.parquet").exists() else None
     )
     by_inc_cmd: dict[str, list[dict[str, Any]]] = {}
     if cmds is not None:
@@ -123,8 +117,7 @@ def incidents(run: str = "autopilot", limit: int = 400) -> list[dict[str, Any]]:
                 "preventive": i["preventive"],
                 "top": {"cls": top, "p": round(i["first_probs"][top], 3)} if top else None,
                 "reading": {
-                    k: i["reading"].get(k)
-                    for k in ("first_action", "safety_concern", "confidence", "_quarantined")
+                    k: i["reading"].get(k) for k in ("first_action", "safety_concern", "confidence", "_quarantined")
                 }
                 if i.get("reading")
                 else None,
@@ -144,9 +137,7 @@ def incidents(run: str = "autopilot", limit: int = 400) -> list[dict[str, Any]]:
     return out[:limit]
 
 
-def _cycles(
-    i: dict[str, Any], cmds: list[dict[str, Any]], shield: list[dict[str, Any]]
-) -> list[dict[str, Any]]:
+def _cycles(i: dict[str, Any], cmds: list[dict[str, Any]], shield: list[dict[str, Any]]) -> list[dict[str, Any]]:
     cycles: list[dict[str, Any]] = []
     for d in i["decisions"]:
         if "decision" in d:
@@ -185,11 +176,7 @@ def _cycles(
                 "rules": [r for r in (sh["blocked_by"] or "").split(",") if r],
             }
         cm = next(
-            (
-                k
-                for k, x in enumerate(cmds)
-                if k not in used and x["action"] == c["action"] and x["ts"] >= c["ts"]
-            ),
+            (k for k, x in enumerate(cmds) if k not in used and x["action"] == c["action"] and x["ts"] >= c["ts"]),
             None,
         )
         if cm is not None:
@@ -206,9 +193,7 @@ def _truth(episodes: pl.DataFrame | None, cid: str, at: int) -> str | None:
     if episodes is None:
         return None
     e = episodes.filter(
-        (pl.col("charger_id") == cid)
-        & (pl.col("start") <= at)
-        & (pl.col("end").fill_null(10**12) >= at - 3600)
+        (pl.col("charger_id") == cid) & (pl.col("start") <= at) & (pl.col("end").fill_null(10**12) >= at - 3600)
     ).sort("start")
     return e["kind"][-1] if e.height else "no fault"
 

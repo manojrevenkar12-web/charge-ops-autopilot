@@ -52,11 +52,7 @@ def create_app(registry: Any = None, gateway: Gateway | None = None) -> FastAPI:
 
     @app.middleware("http")
     async def auth_and_meter(request: Request, call_next: Any) -> Any:
-        if (
-            token
-            and request.url.path.startswith("/v1")
-            and request.headers.get("authorization") != f"Bearer {token}"
-        ):
+        if token and request.url.path.startswith("/v1") and request.headers.get("authorization") != f"Bearer {token}":
             return PlainTextResponse("missing or wrong bearer token", status_code=401)
         t = time.perf_counter()
         resp = await call_next(request)

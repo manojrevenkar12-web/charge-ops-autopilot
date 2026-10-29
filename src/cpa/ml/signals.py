@@ -51,9 +51,7 @@ def hourly(msgs: pl.DataFrame) -> pl.DataFrame:
             heartbeats=(a == "Heartbeat").sum(),
             auth_rfid=((a == "Authorize") & (pl.col("id_token_type") == "ISO14443")).sum(),
             auth_central=((a == "Authorize") & (pl.col("id_token_type") == "Central")).sum(),
-            remote_ok=(
-                (a == "RequestStartTransaction") & (d == "res") & (pl.col("status") == "Accepted")
-            ).sum(),
+            remote_ok=((a == "RequestStartTransaction") & (d == "res") & (pl.col("status") == "Accepted")).sum(),
             tx_started=((a == "TransactionEvent") & (pl.col("event_type") == "Started")).sum(),
             tx_good=good.sum(),
             evcomm_fail=evfail.sum(),
@@ -61,9 +59,7 @@ def hourly(msgs: pl.DataFrame) -> pl.DataFrame:
             watchdog=((a == "NotifyEvent") & (pl.col("variable") == "Watchdog")).sum(),
             problem=((a == "NotifyEvent") & (pl.col("variable") == "Problem")).sum(),
             boots=(a == "BootNotification").sum(),
-            temp_max=pl.when((a == "NotifyEvent") & (pl.col("variable") == "Temperature"))
-            .then(pl.col("value"))
-            .max(),
+            temp_max=pl.when((a == "NotifyEvent") & (pl.col("variable") == "Temperature")).then(pl.col("value")).max(),
             power_sum=pl.when(good & pl.col("power_w").is_not_null()).then(pl.col("power_w")).sum(),
             power_n=(good & pl.col("power_w").is_not_null()).sum(),
             energy_kwh=pl.when(good).then(pl.col("energy_wh") / 1000).sum(),
@@ -93,6 +89,4 @@ def grid(hourly_df: pl.DataFrame, chargers: list[str], h0: int, h1: int) -> pl.D
     hours = pl.DataFrame({"hour": list(range(h0, h1))}, schema={"hour": pl.Int64})
     base = pl.DataFrame({"charger_id": chargers}).join(hours, how="cross")
     out = base.join(hourly_df, on=["charger_id", "hour"], how="left")
-    return out.with_columns(pl.col(c).fill_null(0.0) for c in SIGNALS if c != "temp_max").sort(
-        "charger_id", "hour"
-    )
+    return out.with_columns(pl.col(c).fill_null(0.0) for c in SIGNALS if c != "temp_max").sort("charger_id", "hour")

@@ -376,10 +376,7 @@ class Engine:
                 cur,
                 *[
                     x.select(
-                        [
-                            pl.col(k) if k in x.columns else pl.lit(None, v).alias(k)
-                            for k, v in ocpp_flat.SCHEMA.items()
-                        ]
+                        [pl.col(k) if k in x.columns else pl.lit(None, v).alias(k) for k, v in ocpp_flat.SCHEMA.items()]
                     )
                     for x in extra
                 ],
@@ -557,10 +554,7 @@ class Engine:
                 self.emit(c, t + 2, "RequestStartTransaction", direction="res", evse=e, status="Accepted")
             else:
                 self.emit(c, t, "Authorize", id_token_type=token, status="Accepted")
-            if (
-                "controller_hang" in kinds
-                and u[5] < self.cfg["faults"]["controller_hang"]["effect"]["start_fails"]
-            ):
+            if "controller_hang" in kinds and u[5] < self.cfg["faults"]["controller_hang"]["effect"]["start_fails"]:
                 fail = ("fail_start", "controller_hang")
         if fail:
             self._truth_session(t, c, e, auth, fail[0], fail[1], 0.0)
@@ -600,9 +594,7 @@ class Engine:
         derate = 1.0
         if "power_module" in kinds:
             derate = (
-                self.cfg["faults"]["power_module"]["effect"]["derate_to"]
-                if t >= kinds["power_module"].start
-                else 1
+                self.cfg["faults"]["power_module"]["effect"]["derate_to"] if t >= kinds["power_module"].start else 1
             )
         car_kw = 11.0 if self.kind[c] == "AC" else min(self.kw[c] * derate, 60 + 140 * u[4])
         power = car_kw * 1000
@@ -619,9 +611,7 @@ class Engine:
                 return ep.kind
         return "unavailable"
 
-    def _after_failure(
-        self, t: int, c: int, u: np.ndarray, fail: tuple[str, str], auth: str, retry: bool
-    ) -> None:
+    def _after_failure(self, t: int, c: int, u: np.ndarray, fail: tuple[str, str], auth: str, retry: bool) -> None:
         d = self.cfg["drivers"]
         if u[9] < d["complaint_per_failure"]:
             kind = {
@@ -878,9 +868,7 @@ class Engine:
 
     def _on_log_upload(self, t: int, c: int) -> None:
         kinds = [ep.kind for ep in self.active[c]]
-        g = np.random.Generator(
-            np.random.Philox(key=[self.w.seed, 3_000_003 * 10**10 + (t // 60) * 1000 + c])
-        )
+        g = np.random.Generator(np.random.Philox(key=[self.w.seed, 3_000_003 * 10**10 + (t // 60) * 1000 + c]))
         row = {"ts": t, "charger_id": self.cid[c], "text": texts.diagnostic_log(kinds, g.random(8))}
         self.logs.append(row)
         self.hour_logs.append(row)
@@ -909,21 +897,15 @@ class Engine:
             self.emit(c, t, "FirmwareStatusNotification", status=st)
         ok = (
             by == "rollout"
-            or np.random.Generator(
-                np.random.Philox(key=[self.w.seed, 4_000_003 * 10**10 + t * 1000 + c])
-            ).random()
+            or np.random.Generator(np.random.Philox(key=[self.w.seed, 4_000_003 * 10**10 + t * 1000 + c])).random()
             < self.cfg["rollback_remedies"]["firmware_rollback"]
         )
         if ok:
             self.firmware[c] = version
             if version not in self.fw_history[c]:
                 self.fw_history[c].append(version)
-        self.emit(
-            c, t + 400, "FirmwareStatusNotification", status="Installed" if ok else "InstallationFailed"
-        )
-        self.firmware_events.append(
-            {"ts": t, "charger_id": self.cid[c], "version": version, "by": by, "ok": ok}
-        )
+        self.emit(c, t + 400, "FirmwareStatusNotification", status="Installed" if ok else "InstallationFailed")
+        self.firmware_events.append({"ts": t, "charger_id": self.cid[c], "version": version, "by": by, "ok": ok})
         self.reboot_until[c] = t + 480
         self.push(t + 480, "boot", (c, "FirmwareUpdate"))
         self._refresh(c, t)
@@ -949,12 +931,7 @@ class Engine:
                     continue
                 km = distance_km(pos, self.charger_ll[c]) * 1.25
                 arrive = t + km / fs["speed_kmh"] * HOUR
-                back = (
-                    distance_km(self.charger_ll[c], (tech["lat"], tech["lon"]))
-                    * 1.25
-                    / fs["speed_kmh"]
-                    * HOUR
-                )
+                back = distance_km(self.charger_ll[c], (tech["lat"], tech["lon"])) * 1.25 / fs["speed_kmh"] * HOUR
                 if arrive + fs["visit_hours"]["diagnose"] * HOUR + back > t_end:
                     self._visit_report(int(t_end), tech, s, "not_reached", None, None, "", 0.0)
                     continue
@@ -1023,11 +1000,7 @@ class Engine:
         eta = self.part_orders.get((c, part_needed)) if part_needed else None
         outcome = "part_needed" if needed else ("fixed" if fixed else "no_fault_found")
         part_used = next(
-            (
-                self.cfg["faults"][ep.kind].get("part")
-                for ep in fixed
-                if self.cfg["faults"][ep.kind].get("part")
-            ),
+            (self.cfg["faults"][ep.kind].get("part") for ep in fixed if self.cfg["faults"][ep.kind].get("part")),
             None,
         )
         if u[15] >= fs["structured_part_field"]:

@@ -120,9 +120,7 @@ def evaluate(names: list[str] | None = None, log: Any = print) -> dict[str, Any]
     res = evaluate_all(names or list(POLICIES))
     for r in res.values():
         r["harms"]["total"] = (
-            r["harms"]["interrupted_sessions"]
-            + r["harms"]["unsafe_resets"]
-            + r["harms"].get("injected_actions", 0)
+            r["harms"]["interrupted_sessions"] + r["harms"]["unsafe_resets"] + r["harms"].get("injected_actions", 0)
         )
     _json(settings.REPORTS / "latest.json", {"generated_by": "cpa run", "policies": res})
     return res

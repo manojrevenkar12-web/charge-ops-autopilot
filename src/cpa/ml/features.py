@@ -23,9 +23,9 @@ def _roll(col: str, w: int) -> pl.Expr:
 def window_features(g: pl.DataFrame) -> pl.DataFrame:
     """Rolling counts and trends over the hourly grid (sorted by charger, hour)."""
     g = g.with_columns(
-        failed_starts=(
-            pl.col("auth_rfid") + pl.col("auth_central") + pl.col("remote_ok") - pl.col("tx_started")
-        ).clip(lower_bound=0),
+        failed_starts=(pl.col("auth_rfid") + pl.col("auth_central") + pl.col("remote_ok") - pl.col("tx_started")).clip(
+            lower_bound=0
+        ),
         silent_hour=(pl.col("msgs") == 0).cast(pl.Float64),
     )
     exprs = []
@@ -81,16 +81,11 @@ def status_features(g: pl.DataFrame, status: pl.DataFrame) -> pl.DataFrame:
             .sort("hour")
             .rename({"status": f"st{e}"})
         )
-        out = out.sort("hour").join_asof(
-            se, on="hour", by="charger_id", strategy="backward", check_sortedness=False
-        )
+        out = out.sort("hour").join_asof(se, on="hour", by="charger_id", strategy="backward", check_sortedness=False)
     out = out.with_columns(
-        faulted_now=(
-            (pl.col("st1") == "Faulted").cast(pl.Float64) + (pl.col("st2") == "Faulted").cast(pl.Float64)
-        ),
+        faulted_now=((pl.col("st1") == "Faulted").cast(pl.Float64) + (pl.col("st2") == "Faulted").cast(pl.Float64)),
         unavailable_now=(
-            (pl.col("st1") == "Unavailable").cast(pl.Float64)
-            + (pl.col("st2") == "Unavailable").cast(pl.Float64)
+            (pl.col("st1") == "Unavailable").cast(pl.Float64) + (pl.col("st2") == "Unavailable").cast(pl.Float64)
         ),
     ).with_columns(pl.col("faulted_now", "unavailable_now").fill_null(0.0))
     return out.sort("charger_id", "hour")
@@ -110,9 +105,7 @@ def site_features(g: pl.DataFrame, chargers: pl.DataFrame) -> pl.DataFrame:
         on="charger_id",
         how="left",
     )
-    site = g.group_by("site_id", "hour").agg(
-        site_silent=(pl.col("hours_silent") >= 2).mean(), site_n=pl.len()
-    )
+    site = g.group_by("site_id", "hour").agg(site_silent=(pl.col("hours_silent") >= 2).mean(), site_n=pl.len())
     g = g.join(site, on=["site_id", "hour"], how="left")
     return g.with_columns(
         firmware=pl.coalesce("firmware_seen", "firmware_ref"),
@@ -120,9 +113,7 @@ def site_features(g: pl.DataFrame, chargers: pl.DataFrame) -> pl.DataFrame:
     ).drop("firmware_ref")
 
 
-def build(
-    hourly_df: pl.DataFrame, status: pl.DataFrame, chargers: pl.DataFrame, h0: int, h1: int
-) -> pl.DataFrame:
+def build(hourly_df: pl.DataFrame, status: pl.DataFrame, chargers: pl.DataFrame, h0: int, h1: int) -> pl.DataFrame:
     g = grid(hourly_df, chargers["charger_id"].to_list(), h0, h1)
     g = window_features(g)
     g = status_features(g, status)
@@ -207,13 +198,9 @@ def symptoms(f: pl.DataFrame, d: dict) -> pl.DataFrame:
         sym_starts=pl.col("failed_starts_24") >= d["silent_start_failures"],
         sym_evcomm=pl.col("evcomm_fail_72") >= d["evcomm_failures"],
         sym_rfid=(pl.col("auth_rfid_168") >= 6) & (pl.col("auth_rfid_72") == 0) & (pl.col("tx_good_72") >= 2),
-        sym_central=(pl.col("auth_central_168") >= 5)
-        & (pl.col("auth_central_72") == 0)
-        & (pl.col("tx_good_72") >= 2),
+        sym_central=(pl.col("auth_central_168") >= 5) & (pl.col("auth_central_72") == 0) & (pl.col("tx_good_72") >= 2),
     ).with_columns(
-        symptom=pl.any_horizontal(
-            "sym_faulted", "sym_offline", "sym_starts", "sym_evcomm", "sym_rfid", "sym_central"
-        )
+        symptom=pl.any_horizontal("sym_faulted", "sym_offline", "sym_starts", "sym_evcomm", "sym_rfid", "sym_central")
     )
 
 

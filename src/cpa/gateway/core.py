@@ -143,9 +143,7 @@ class Gateway:
             if prompt_tokens > uc["max_input_tokens"]:
                 clean = self._shrink(use_case, clean, uc["max_input_tokens"])
                 prompt_tokens = estimate_tokens(prompts.render(use_case, clean))
-            key = hashlib.sha256(
-                json.dumps([use_case, clean], sort_keys=True, default=str).encode()
-            ).hexdigest()
+            key = hashlib.sha256(json.dumps([use_case, clean], sort_keys=True, default=str).encode()).hexdigest()
             if uc.get("cache") and key in self.cache:
                 _, out, tin, tout = self.cache[key]
                 res = Result(out, "cache", 0, 0, 0.0, 1.0, True, rep, trace_id)
@@ -167,9 +165,7 @@ class Gateway:
                 try:
                     if self.fail.get(model, 0) and _unit(trace_id, model) < self.fail[model]:
                         raise RuntimeError("provider unavailable")
-                    text, tin, tout = self.provider_for(model).complete(
-                        model, use_case, clean, uc["max_output_tokens"]
-                    )
+                    text, tin, tout = self.provider_for(model).complete(model, use_case, clean, uc["max_output_tokens"])
                 except Exception as e:  # provider error: count it, try the next model
                     self.limits.settle(use_case, now, worst, 0.0)
                     self._trip(model, now)
@@ -185,11 +181,7 @@ class Gateway:
                     out = json.loads(text)
                 except json.JSONDecodeError:
                     out = None
-                ok = (
-                    guard.check_output(uc["output_schema"], out, rep)
-                    if self.guards
-                    else isinstance(out, dict)
-                )
+                ok = guard.check_output(uc["output_schema"], out, rep) if self.guards else isinstance(out, dict)
                 span.set_attribute("gen_ai.provider.name", self.provider_for(model).name)
                 span.set_attribute("gen_ai.request.model", model)
                 span.set_attribute("gen_ai.response.model", model)

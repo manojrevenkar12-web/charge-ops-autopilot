@@ -124,8 +124,7 @@ def to_payload(row: dict[str, Any]) -> tuple[str, dict[str, Any]]:
             "trigger": "Alerting" if row["tech_code"] else "Periodic",
             "actualValue": "" if row["value"] is None else f"{row['value']:g}",
             "eventNotificationType": "HardWiredNotification",
-            "component": {"name": row["component"]}
-            | ({"evse": {"id": int(row["evse"])}} if row["evse"] else {}),
+            "component": {"name": row["component"]} | ({"evse": {"id": int(row["evse"])}} if row["evse"] else {}),
             "variable": {"name": row["variable"]},
         }
         if row["tech_code"]:
@@ -134,9 +133,7 @@ def to_payload(row: dict[str, Any]) -> tuple[str, dict[str, Any]]:
             ev["techInfo"] = row["tech_info"][:500]
         return a, {"generatedAt": t, "seqNo": 0, "eventData": [ev]}
     if a == "SecurityEventNotification":
-        return a, {"type": row["status"], "timestamp": t} | (
-            {"techInfo": row["tech_info"]} if row["tech_info"] else {}
-        )
+        return a, {"type": row["status"], "timestamp": t} | ({"techInfo": row["tech_info"]} if row["tech_info"] else {})
     if a == "FirmwareStatusNotification":
         return a, {"status": row["status"]}
     if a == "RequestStartTransaction":
@@ -150,9 +147,7 @@ def to_payload(row: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     if a == "UnlockConnector":
         return a, {"evseId": int(row["evse"]), "connectorId": 1}
     if a == "ChangeAvailability":
-        return a, {"operationalStatus": row["status"]} | (
-            {"evse": {"id": int(row["evse"])}} if row["evse"] else {}
-        )
+        return a, {"operationalStatus": row["status"]} | ({"evse": {"id": int(row["evse"])}} if row["evse"] else {})
     if a == "UpdateFirmware":
         return a, {
             "requestId": 1,

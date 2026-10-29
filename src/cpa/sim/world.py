@@ -196,9 +196,7 @@ def build(cfg: dict[str, Any] | None = None) -> World:
     prof = prof / prof.mean()
     site_demand = sites["demand"].to_numpy()[chargers["site"].to_numpy()]
     per_day = np.array([cfg["models"][m]["sessions_per_day"] for m in chargers["model"]])
-    offset = (
-        chargers["country"].replace_strict({c: fleet["countries"][c]["utc"] for c in countries}).to_numpy()
-    )
+    offset = chargers["country"].replace_strict({c: fleet["countries"][c]["utc"] for c in countries}).to_numpy()
     h = np.arange(hours)
     local = (h[:, None] + offset[None, :]) % 24
     dow = ((h[:, None] + offset[None, :]) // 24) % 7  # t0 is a Monday

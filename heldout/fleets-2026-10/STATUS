@@ -1,1 +1,1 @@
-blind: written from heldout/WRITING_SCENARIOS.md, config/fleet.yaml and src/cpa/sim only
+regression: first run recorded 2026-10-30 (reports/heldout/fleets-2026-10/first_run.json) and its failures studied; a new blind set is needed

@@ -13,8 +13,12 @@ import bm25s
 
 from .settings import ROOT
 
-MANUALS = {"HPC-350": "alpenstrom-hpc-350.md", "DC-150": "nordvolt-dc-150.md", "DC-60": "kestrel-dc-60.md",
-           "AC-22": "volta-ac-22.md"}
+MANUALS = {
+    "HPC-350": "alpenstrom-hpc-350.md",
+    "DC-150": "nordvolt-dc-150.md",
+    "DC-60": "kestrel-dc-60.md",
+    "AC-22": "volta-ac-22.md",
+}
 RUNBOOK = "edri-noc-runbook.md"
 
 

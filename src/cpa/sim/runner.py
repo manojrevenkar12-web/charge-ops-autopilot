@@ -20,9 +20,12 @@ WARMUP_DAYS = 14
 
 def write_reference(w: W.World, dest: Path) -> None:
     dest.mkdir(parents=True, exist_ok=True)
-    w.chargers.select(["charger_id", "site_id", "country", "model", "vendor", "kind", "kw", "connectors",
-                       "firmware"]).write_parquet(dest / "chargers.parquet")
-    w.sites.select(["site_id", "country", "lat", "lon", "utc_offset", "motorway"]).write_parquet(dest / "sites.parquet")
+    w.chargers.select(
+        ["charger_id", "site_id", "country", "model", "vendor", "kind", "kw", "connectors", "firmware"]
+    ).write_parquet(dest / "chargers.parquet")
+    w.sites.select(["site_id", "country", "lat", "lon", "utc_offset", "motorway"]).write_parquet(
+        dest / "sites.parquet"
+    )
     w.technicians.write_parquet(dest / "technicians.parquet")
 
 
@@ -49,8 +52,14 @@ def test_run(w: W.World, policy: Policy, name: str, log: Any = print) -> dict[st
     (out / "ops").mkdir(parents=True, exist_ok=True)
     for k, rows in arts.items():
         (out / "ops" / f"{k}.json").write_text(json.dumps(rows, default=str))
-    meta = {"policy": name, "start": start, "scored_from": w.history_end, "end": w.end,
-            "seconds": round(time.perf_counter() - t, 1), "report": policy.report()}
+    meta = {
+        "policy": name,
+        "start": start,
+        "scored_from": w.history_end,
+        "end": w.end,
+        "seconds": round(time.perf_counter() - t, 1),
+        "report": policy.report(),
+    }
     (out / "meta.json").write_text(json.dumps(meta, default=str))
     log(f"{name}: {meta['seconds']} s")
     return meta

@@ -31,8 +31,16 @@ def km(a: tuple[float, float], b: tuple[float, float]) -> float:
     return 6371 * 2 * math.asin(math.sqrt(h)) * 1.25  # road detour
 
 
-def plan_country(jobs: list[Job], techs: list[dict[str, Any]], *, workday_min: int, speed_kmh: float,
-                 km_cost: float, max_stops: int, seconds: float) -> dict[str, list[Job]]:
+def plan_country(
+    jobs: list[Job],
+    techs: list[dict[str, Any]],
+    *,
+    workday_min: int,
+    speed_kmh: float,
+    km_cost: float,
+    max_stops: int,
+    seconds: float,
+) -> dict[str, list[Job]]:
     if not jobs or not techs:
         return {}
     pts = [(t["lat"], t["lon"]) for t in techs] + [(j.lat, j.lon) for j in jobs]

@@ -71,13 +71,33 @@ class Incident:
 
 
 class Autopilot:
-    def __init__(self, name: str = "autopilot", *, autonomy: bool = True, vrp: bool = True, predictive: bool = True,
-                 cohorts: bool = True, shield: bool = True, guards: bool = True, reader: bool = True,
-                 models_from: Any = None, retrain: bool = True, llm_decides: bool = False) -> None:
+    def __init__(
+        self,
+        name: str = "autopilot",
+        *,
+        autonomy: bool = True,
+        vrp: bool = True,
+        predictive: bool = True,
+        cohorts: bool = True,
+        shield: bool = True,
+        guards: bool = True,
+        reader: bool = True,
+        models_from: Any = None,
+        retrain: bool = True,
+        llm_decides: bool = False,
+    ) -> None:
         self.name = name
-        self.flags = {"autonomy": autonomy, "vrp": vrp, "predictive": predictive, "cohorts": cohorts,
-                      "shield": shield, "guards": guards, "reader": reader, "retrain": retrain,
-                      "llm_decides": llm_decides}
+        self.flags = {
+            "autonomy": autonomy,
+            "vrp": vrp,
+            "predictive": predictive,
+            "cohorts": cohorts,
+            "shield": shield,
+            "guards": guards,
+            "reader": reader,
+            "retrain": retrain,
+            "llm_decides": llm_decides,
+        }
         self.ops = settings.ops()
         self.pcfg = self.ops["planner"]
         self.noc = self.ops["noc"]
@@ -125,14 +145,25 @@ class Autopilot:
         for r in obs.visits.iter_rows(named=True):
             self._visit(r, now)
         new = signals.hourly(obs.messages)
-        self.sig = new if self.sig is None else pl.concat([self.sig.filter(pl.col("hour") > hour - 175), new],
-                                                          how="diagonal_relaxed")
+        self.sig = (
+            new
+            if self.sig is None
+            else pl.concat([self.sig.filter(pl.col("hour") > hour - 175), new], how="diagonal_relaxed")
+        )
         f = self._features(hour)
         if self.keep_features:
             self.feature_log.append(f.select("charger_id", "hour", *features.FEATURES))
         sym = features.symptoms(f, self.ops["detection"]).select(
-            "charger_id", "symptom", "sym_faulted", "sym_offline", "sym_starts", "sym_evcomm", "sym_rfid",
-            "sym_central", "tx_good")
+            "charger_id",
+            "symptom",
+            "sym_faulted",
+            "sym_offline",
+            "sym_starts",
+            "sym_evcomm",
+            "sym_rfid",
+            "sym_central",
+            "tx_good",
+        )
         cmds: list[Command] = []
         frows = {r["charger_id"]: r for r in f.iter_rows(named=True)}
         for r in sym.iter_rows(named=True):
@@ -142,11 +173,18 @@ class Autopilot:
             self.models_from.on_hour(now)
         self._outcomes(now)
         cmds.extend(self._reopen(now))
-        decide = [i for i in self.incidents.values() if i.state in ("open", "waiting") and i.pending is None
-                  and i.proposal is None and now >= i.wait_until]
+        decide = [
+            i
+            for i in self.incidents.values()
+            if i.state in ("open", "waiting")
+            and i.pending is None
+            and i.proposal is None
+            and now >= i.wait_until
+        ]
         if decide:
             df = pl.DataFrame([frows[i.charger_id] for i in decide]).with_columns(
-                age=pl.Series([float(hour - i.onset_hour) for i in decide]))
+                age=pl.Series([float(hour - i.onset_hour) for i in decide])
+            )
             probs = self._diagnose(df)
             for inc, p, row in zip(decide, probs, df.iter_rows(named=True), strict=True):
                 if not inc.first_probs:
@@ -160,10 +198,17 @@ class Autopilot:
 
     def _features(self, hour: int) -> pl.DataFrame:
         status = pl.DataFrame(
-            [{"charger_id": cid, "evse": e, "status": s, "received": hour * HOUR}
-             for cid, cv in self.view.chargers.items() for e, (s, _) in cv.status.items() if e in (1, 2)],
-            schema={"charger_id": pl.Utf8, "evse": pl.Int8, "status": pl.Utf8, "received": pl.Int64})
-        ref = self.ref.with_columns(firmware=pl.Series([self.view.chargers[c].firmware for c in self.ref["charger_id"]]))
+            [
+                {"charger_id": cid, "evse": e, "status": s, "received": hour * HOUR}
+                for cid, cv in self.view.chargers.items()
+                for e, (s, _) in cv.status.items()
+                if e in (1, 2)
+            ],
+            schema={"charger_id": pl.Utf8, "evse": pl.Int8, "status": pl.Utf8, "received": pl.Int64},
+        )
+        ref = self.ref.with_columns(
+            firmware=pl.Series([self.view.chargers[c].firmware for c in self.ref["charger_id"]])
+        )
         return features.online(self.sig, status, ref, hour)
 
     # ---------------------------------------------------------------- incidents
@@ -171,14 +216,24 @@ class Autopilot:
         cid = r["charger_id"]
         inc = self.incidents.get(cid)
         if r["symptom"]:
-            names = {k[4:] for k in ("sym_faulted", "sym_offline", "sym_starts", "sym_evcomm", "sym_rfid",
-                                     "sym_central") if r[k]}
+            names = {
+                k[4:]
+                for k in ("sym_faulted", "sym_offline", "sym_starts", "sym_evcomm", "sym_rfid", "sym_central")
+                if r[k]
+            }
             if inc is None:
                 self.n += 1
                 inc = Incident(f"AP-{self.n:05d}", cid, now, hour, hour, names)
                 self.incidents[cid] = inc
-                self.events.append({"ts": now, "incident": inc.id, "charger_id": cid, "event": "opened",
-                                    "detail": ",".join(sorted(names))})
+                self.events.append(
+                    {
+                        "ts": now,
+                        "incident": inc.id,
+                        "charger_id": cid,
+                        "event": "opened",
+                        "detail": ",".join(sorted(names)),
+                    }
+                )
             else:
                 inc.last_symptom_hour = hour
                 inc.symptoms |= names
@@ -189,23 +244,37 @@ class Autopilot:
         elif inc is not None:
             if r["tx_good"] > 0:
                 inc.good_since_symptom = True
-            if hour - inc.last_symptom_hour > QUIET_HOURS and getattr(inc, "good_since_symptom", False) \
-                    and inc.state not in ("part",):
+            if (
+                hour - inc.last_symptom_hour > QUIET_HOURS
+                and getattr(inc, "good_since_symptom", False)
+                and inc.state not in ("part",)
+            ):
                 self._close(inc, now, "recovered")
 
     def _new_trouble(self, cid: str, since: int) -> bool:
         """Fresh evidence after `since` (the rolling symptom windows still hold the failures from before a fix)."""
         cv = self.view.chargers[cid]
-        return (any(t > since for t in cv.failed_starts) or any(t > since for t, _ in cv.evcomm_fails)
-                or bool(self.view.faulted(cid)) or not self.view.online(cid))
+        return (
+            any(t > since for t in cv.failed_starts)
+            or any(t > since for t, _ in cv.evcomm_fails)
+            or bool(self.view.faulted(cid))
+            or not self.view.online(cid)
+        )
 
     def _close(self, inc: Incident, now: int, how: str) -> None:
         inc.state, inc.closed = "resolved", now
         inc.resolution = inc.resolution or how
         self.incidents.pop(inc.charger_id, None)
         self.closed.append(inc)
-        self.events.append({"ts": now, "incident": inc.id, "charger_id": inc.charger_id, "event": "closed",
-                            "detail": inc.resolution})
+        self.events.append(
+            {
+                "ts": now,
+                "incident": inc.id,
+                "charger_id": inc.charger_id,
+                "event": "closed",
+                "detail": inc.resolution,
+            }
+        )
         if self.models_from is not None:
             self.models_from.resolved(inc)
 
@@ -229,7 +298,9 @@ class Autopilot:
                 self.ladder.observe(p["action"], cv.model, success, now)
                 self._learn(p["action"], p["cls"], success)
             inc.pending = None
-            inc.decisions.append({"ts": now, "outcome": "worked" if success else "did not work", "action": p["action"]})
+            inc.decisions.append(
+                {"ts": now, "outcome": "worked" if success else "did not work", "action": p["action"]}
+            )
             if success:
                 inc.resolution = p["action"]
                 inc.state, inc.watch_since = "watch", now  # wait for the quiet day that closes it
@@ -264,7 +335,9 @@ class Autopilot:
         a, b = self._belief(action, cls)
         self.beliefs[(action, cls)] = [a + success, b + (not success)]
 
-    def _read(self, inc: Incident, row: dict[str, Any], now: int, probs: dict[str, float]) -> dict[str, Any] | None:
+    def _read(
+        self, inc: Incident, row: dict[str, Any], now: int, probs: dict[str, float]
+    ) -> dict[str, Any] | None:
         if not self.flags["reader"]:
             return None
         cv = self.view.chargers[inc.charger_id]
@@ -276,13 +349,23 @@ class Autopilot:
             return None
         q = " ".join([code, info, " ".join(sorted(inc.symptoms)), *complaints])
         passages = [p.text for p in kb.search(q, cv.model, 4)]
-        fields = {"model": cv.model, "firmware": cv.firmware, "symptoms": sorted(inc.symptoms),
-                  "diagnosis": {k: round(v, 2) for k, v in sorted(probs.items(), key=lambda kv: -kv[1])[:4]},
-                  "tech_code": code, "tech_info": info, "log": log, "complaints": complaints, "passages": passages}
+        fields = {
+            "model": cv.model,
+            "firmware": cv.firmware,
+            "symptoms": sorted(inc.symptoms),
+            "diagnosis": {k: round(v, 2) for k, v in sorted(probs.items(), key=lambda kv: -kv[1])[:4]},
+            "tech_code": code,
+            "tech_info": info,
+            "log": log,
+            "complaints": complaints,
+            "passages": passages,
+        }
         try:
             r = self.gateway.call("incident-reader", fields, now=now, caller=inc.id)
         except GatewayError as e:
-            inc.decisions.append({"ts": now, "note": f"reader unavailable ({e.kind}); deciding from the model"})
+            inc.decisions.append(
+                {"ts": now, "note": f"reader unavailable ({e.kind}); deciding from the model"}
+            )
             return None
         out = dict(r.output)
         out["_quarantined"] = len(r.guard.quarantined)
@@ -329,8 +412,14 @@ class Autopilot:
         safety = bool(reading.get("safety_concern"))
         top = max(combined, key=combined.get) if combined else "other"
         cmds: list[Command] = []
-        note = {"ts": now, "top": top, "p": round(combined.get(top, 0), 3), "safety": safety,
-                "reader": reading.get("first_action"), "quarantined": reading.get("_quarantined", 0)}
+        note = {
+            "ts": now,
+            "top": top,
+            "p": round(combined.get(top, 0), 3),
+            "safety": safety,
+            "reader": reading.get("first_action"),
+            "quarantined": reading.get("_quarantined", 0),
+        }
         online = self.view.online(cid)
         if self.flags["llm_decides"]:
             return self._llm_decides(inc, reading, note, now)
@@ -341,9 +430,14 @@ class Autopilot:
             return []
         # 2. waiting may be the cheapest fix; and a quiet charger that only *looks* odd is watched, not visited
         ws = self.pcfg["wait_if_self_resolving"]
-        likely_parts = [k for k, v in combined.items() if k.startswith("part:") and v >= self.pcfg["part_probability"]]
-        failing = (row.get("failed_starts_24") or 0) + (row.get("evcomm_fail_24") or 0) > 0 or \
-            (row.get("faulted_now") or 0) > 0 or not online
+        likely_parts = [
+            k for k, v in combined.items() if k.startswith("part:") and v >= self.pcfg["part_probability"]
+        ]
+        failing = (
+            (row.get("failed_starts_24") or 0) + (row.get("evcomm_fail_24") or 0) > 0
+            or (row.get("faulted_now") or 0) > 0
+            or not online
+        )
         if combined.get("self_resolved", 0) >= ws["probability"]:
             if now - inc.opened < ws["hours"] * HOUR:
                 inc.wait_until = inc.opened + ws["hours"] * HOUR
@@ -354,8 +448,10 @@ class Autopilot:
                 inc.decisions.append(note | {"decision": "keep watching: nothing is failing"})
                 return []
         # 3. a firmware cohort problem is handled fleet-wide, not charger by charger
-        if any(a.model == cv.model and a.version == cv.firmware for a in self.alerts) and combined.get("firmware", 0) + \
-                combined.get("part:cable", 0) > 0.3:
+        if (
+            any(a.model == cv.model and a.version == cv.firmware for a in self.alerts)
+            and combined.get("firmware", 0) + combined.get("part:cable", 0) > 0.3
+        ):
             inc.wait_until = now + 12 * HOUR
             inc.decisions.append(note | {"decision": "wait: firmware cohort rollback in progress"})
             return []
@@ -372,7 +468,10 @@ class Autopilot:
                     continue
                 if a == "station_reset" and "evse_reset" not in tried and not station_level:
                     continue  # the runbook (and the shield) want the EVSE first
-                p = sum(pc * (lambda ab: ab[0] / (ab[0] + ab[1]))(self._belief(a, c)) for c, pc in combined.items())
+                p = sum(
+                    pc * (lambda ab: ab[0] / (ab[0] + ab[1]))(self._belief(a, c))
+                    for c, pc in combined.items()
+                )
                 options.append((p, a))
             options.sort(reverse=True)
             if options and options[0][0] >= self.pcfg["min_success_to_try"]:
@@ -382,12 +481,22 @@ class Autopilot:
                 params |= {"station_level": station_level, "safety_concern": safety}
                 cmd = Command(cid, a, evse, params, reason=f"P(works)={p:.2f}; likely {top}", incident=inc.id)
                 out = self._issue(inc, cmd, now, cls=top)
-                inc.decisions.append(note | {"decision": f"{a} (expected success {p:.2f})", "sent": bool(out)})
+                inc.decisions.append(
+                    note | {"decision": f"{a} (expected success {p:.2f})", "sent": bool(out)}
+                )
                 return out
-            if not inc.log_requested and float(reading.get("confidence", 0)) < self.pcfg["get_log_below_confidence"]:
+            if (
+                not inc.log_requested
+                and float(reading.get("confidence", 0)) < self.pcfg["get_log_below_confidence"]
+            ):
                 inc.log_requested = True
-                cmd = Command(cid, "get_log", reason="reading unsure; fetch diagnostic log", incident=inc.id,
-                              decided_by="autonomous")
+                cmd = Command(
+                    cid,
+                    "get_log",
+                    reason="reading unsure; fetch diagnostic log",
+                    incident=inc.id,
+                    decided_by="autonomous",
+                )
                 if self.shield.check(cmd, now).allowed:
                     self.shield.record(cmd, now)
                     inc.wait_until = now + HOUR
@@ -395,20 +504,32 @@ class Autopilot:
                     return [cmd]
         # 5. a visit, with the parts the diagnosis expects; keep drivers away if it mostly fails meanwhile
         if inc.state != "dispatch":
-            parts = sorted({k.split(":", 1)[1] for k, v in combined.items()
-                            if k.startswith("part:") and v >= self.pcfg["part_probability"]})
+            parts = sorted(
+                {
+                    k.split(":", 1)[1]
+                    for k, v in combined.items()
+                    if k.startswith("part:") and v >= self.pcfg["part_probability"]
+                }
+            )
             if safety:
                 parts = sorted(set(parts) | {"cable"})
             inc.parts = parts
             inc.state = "dispatch"
             inc.decisions.append(note | {"decision": f"dispatch with {parts or 'no parts'}"})
-            if (safety or self._usability(row) < self.pcfg["inoperative_below_usability"]) and not inc.inoperative \
-                    and online:
-                cmd = Command(cid, "set_inoperative", 0, {}, reason="mostly failing until repaired", incident=inc.id)
+            if (
+                (safety or self._usability(row) < self.pcfg["inoperative_below_usability"])
+                and not inc.inoperative
+                and online
+            ):
+                cmd = Command(
+                    cid, "set_inoperative", 0, {}, reason="mostly failing until repaired", incident=inc.id
+                )
                 cmds.extend(self._issue(inc, cmd, now, cls=top, track=False))
         return cmds
 
-    def _llm_decides(self, inc: Incident, reading: dict[str, Any], note: dict[str, Any], now: int) -> list[Command]:
+    def _llm_decides(
+        self, inc: Incident, reading: dict[str, Any], note: dict[str, Any], now: int
+    ) -> list[Command]:
         """Positive control, not a design: the model's recommended action is executed as it stands, with no
         planner, shield or approval in between. The evaluation must see the harm this does."""
         a = reading.get("first_action") or "dispatch"
@@ -417,12 +538,21 @@ class Autopilot:
             inc.wait_until = now + 6 * HOUR
             return []
         if a == "dispatch" or a in {t for t, _, _ in inc.tried}:
-            inc.state, inc.parts = "dispatch", [k.split(":", 1)[1] for k, v in inc.probs.items()
-                                                if k.startswith("part:") and v >= 0.2]
+            inc.state, inc.parts = (
+                "dispatch",
+                [k.split(":", 1)[1] for k, v in inc.probs.items() if k.startswith("part:") and v >= 0.2],
+            )
             return []
         faulted = self.view.faulted(inc.charger_id)
-        cmd = Command(inc.charger_id, a, faulted[0] if faulted else 1, {"type": "Immediate"},
-                      reason=f"llm:{a}{' injected' if injected else ''}", incident=inc.id, decided_by="llm")
+        cmd = Command(
+            inc.charger_id,
+            a,
+            faulted[0] if faulted else 1,
+            {"type": "Immediate"},
+            reason=f"llm:{a}{' injected' if injected else ''}",
+            incident=inc.id,
+            decided_by="llm",
+        )
         inc.decisions.append(note | {"decision": f"model said {a}"})
         return self._send(inc, cmd, now, "llm", track=a in REMOTE)
 
@@ -452,8 +582,15 @@ class Autopilot:
                 inc.state = "waiting"
         if cmd.action == "set_inoperative":
             inc.inoperative = True
-        self.events.append({"ts": now, "incident": inc.id, "charger_id": inc.charger_id, "event": cmd.action,
-                            "detail": cmd.decided_by})
+        self.events.append(
+            {
+                "ts": now,
+                "incident": inc.id,
+                "charger_id": inc.charger_id,
+                "event": cmd.action,
+                "detail": cmd.decided_by,
+            }
+        )
         return [cmd]
 
     def _noc_time(self, now: int, key: str) -> int:
@@ -481,7 +618,9 @@ class Autopilot:
             inc.proposal = None
             v = self.shield.check(cmd, now)  # the world may have changed since it was proposed
             if not v.allowed:
-                inc.decisions.append({"ts": now, "blocked": cmd.action, "rules": v.blocked_by, "after": "approval"})
+                inc.decisions.append(
+                    {"ts": now, "blocked": cmd.action, "rules": v.blocked_by, "after": "approval"}
+                )
                 if cmd.action in REMOTE:
                     inc.tried.append((cmd.action, now, cmd.evse))
                 continue
@@ -495,20 +634,25 @@ class Autopilot:
         inc = self.incidents.get(r["charger_id"])
         if inc is None:
             return
-        inc.decisions.append({"ts": now, "visit": r["outcome"], "part_used": r["part_used"],
-                              "part_needed": r["part_needed"]})
+        inc.decisions.append(
+            {"ts": now, "visit": r["outcome"], "part_used": r["part_used"], "part_needed": r["part_needed"]}
+        )
         if r["outcome"] == "part_needed":
             inc.state, inc.parts, inc.part_eta = "part", sorted({*inc.parts, r["part_needed"]}), r["part_eta"]
         elif r["outcome"] == "not_reached":
             inc.state = "dispatch"
         elif r["outcome"] in ("fixed", "no_fault_found", "site_without_power"):
-            inc.resolution = {"fixed": "visit", "no_fault_found": "no_fault_found",
-                              "site_without_power": "grid"}[r["outcome"]]
+            inc.resolution = {
+                "fixed": "visit",
+                "no_fault_found": "no_fault_found",
+                "site_without_power": "grid",
+            }[r["outcome"]]
             inc.part_used = r["part_used"]
             if r["outcome"] == "fixed" and not r["part_used"] and r["note"]:
                 try:  # the structured field was left empty: read the note
-                    res = self.gateway.call("note-labeler", {"note": r["note"], "lang": r["lang"]}, now=now,
-                                            caller=inc.id)
+                    res = self.gateway.call(
+                        "note-labeler", {"note": r["note"], "lang": r["lang"]}, now=now, caller=inc.id
+                    )
                     inc.part_used = res.output.get("part")
                 except GatewayError:
                     pass
@@ -524,18 +668,36 @@ class Autopilot:
         sites = {r["site_id"]: r for r in self.sites.iter_rows(named=True)}
         hour = now // HOUR - 1
         for inc in self.incidents.values():
-            if inc.state == "dispatch" or (inc.state == "part" and (inc.part_eta or 0) <= day_start + 8 * HOUR):
+            if inc.state == "dispatch" or (
+                inc.state == "part" and (inc.part_eta or 0) <= day_start + 8 * HOUR
+            ):
                 cv = self.view.chargers[inc.charger_id]
-                quiet = hour - inc.last_symptom_hour >= 6 and self.view.online(inc.charger_id) \
-                    and not self.view.faulted(inc.charger_id) and not inc.inoperative and not inc.preventive
+                quiet = (
+                    hour - inc.last_symptom_hour >= 6
+                    and self.view.online(inc.charger_id)
+                    and not self.view.faulted(inc.charger_id)
+                    and not inc.inoperative
+                    and not inc.preventive
+                )
                 if quiet and inc.state == "dispatch":
                     inc.decisions.append({"ts": now, "decision": "visit held: no symptom for 6 h"})
                     continue
                 s = sites[cv.site_id]
                 age_h = (now - inc.opened) / HOUR
-                value = inc.value_per_hour * 24 * (1 + min(age_h / 72, 2))  # a day of downtime, more for old ones
-                jobs.append(Job(inc.id, inc.charger_id, s["lat"], s["lon"], max(value, 30.0),
-                                self.pcfg["dispatch_service_minutes"], inc.parts))
+                value = (
+                    inc.value_per_hour * 24 * (1 + min(age_h / 72, 2))
+                )  # a day of downtime, more for old ones
+                jobs.append(
+                    Job(
+                        inc.id,
+                        inc.charger_id,
+                        s["lat"],
+                        s["lon"],
+                        max(value, 30.0),
+                        self.pcfg["dispatch_service_minutes"],
+                        inc.parts,
+                    )
+                )
         if self.flags["predictive"] and self.models_from is not None and self.models_from.risk is not None:
             jobs.extend(self._preventive(now, sites))
         if not self.flags["vrp"]:
@@ -547,10 +709,15 @@ class Autopilot:
         techs = self.techs.to_dicts()
         for country, js in by_country.items():
             ts = [t for t in techs if t["country"] == country]
-            routes = plan_country(js, ts, workday_min=9 * 60, speed_kmh=fs_speed,
-                                  km_cost=self.ops["business"]["km_cost_eur"],
-                                  max_stops=self.ops["dispatch"]["stops_per_technician"],
-                                  seconds=self.ops["dispatch"]["solver_seconds"] / max(len(by_country), 1))
+            routes = plan_country(
+                js,
+                ts,
+                workday_min=9 * 60,
+                speed_kmh=fs_speed,
+                km_cost=self.ops["business"]["km_cost_eur"],
+                max_stops=self.ops["dispatch"]["stops_per_technician"],
+                seconds=self.ops["dispatch"]["solver_seconds"] / max(len(by_country), 1),
+            )
             for tech, route in routes.items():
                 out[tech] = [Stop(j.charger_id, j.parts, j.key) for j in route]
         return out
@@ -558,7 +725,13 @@ class Autopilot:
     def _fifo(self, jobs: list[Job]) -> dict[str, list[Stop]]:
         class T:  # adapter to the baseline's queue
             def __init__(self, j: Job, opened: int) -> None:
-                self.charger_id, self.opened, self.id, self.part, self.part_eta = j.charger_id, opened, j.key, None, None
+                self.charger_id, self.opened, self.id, self.part, self.part_eta = (
+                    j.charger_id,
+                    opened,
+                    j.key,
+                    None,
+                    None,
+                )
 
         opened = {i.id: i.opened for i in self.incidents.values()}
         q = [T(j, opened.get(j.key, 0)) for j in jobs]
@@ -571,24 +744,48 @@ class Autopilot:
         f = self._features(hour)
         f = f.filter(pl.col("faulted_now") == 0)
         p = self.models_from.risk.predict(f)[:, 1]
-        f = f.with_columns(risk=pl.Series(p)).filter((pl.col("risk") >= cfg["risk_threshold"])
-                                                    & (pl.col("temp_trend") >= cfg["temperature_trend_c"])
-                                                    & (pl.col("kind") != "AC")).sort("risk", descending=True)
+        f = (
+            f.with_columns(risk=pl.Series(p))
+            .filter(
+                (pl.col("risk") >= cfg["risk_threshold"])
+                & (pl.col("temp_trend") >= cfg["temperature_trend_c"])
+                & (pl.col("kind") != "AC")
+            )
+            .sort("risk", descending=True)
+        )
         jobs = []
         for r in f.head(cfg["max_per_day"]).iter_rows(named=True):
             cid = r["charger_id"]
             if cid in self.incidents:
                 continue
             self.n += 1
-            inc = Incident(f"AP-{self.n:05d}", cid, now, hour, hour, {"risk"}, state="dispatch", preventive=True)
+            inc = Incident(
+                f"AP-{self.n:05d}", cid, now, hour, hour, {"risk"}, state="dispatch", preventive=True
+            )
             inc.parts = ["power_module"]
             inc.value_per_hour = self._value_per_hour(r)
             self.incidents[cid] = inc
-            self.events.append({"ts": now, "incident": inc.id, "charger_id": cid, "event": "preventive",
-                                "detail": f"risk {r['risk']:.2f}, module +{r['temp_trend']:.1f} C"})
+            self.events.append(
+                {
+                    "ts": now,
+                    "incident": inc.id,
+                    "charger_id": cid,
+                    "event": "preventive",
+                    "detail": f"risk {r['risk']:.2f}, module +{r['temp_trend']:.1f} C",
+                }
+            )
             s = sites[self.view.chargers[cid].site_id]
-            jobs.append(Job(inc.id, cid, s["lat"], s["lon"], inc.value_per_hour * 48 * float(r["risk"]),
-                            self.pcfg["dispatch_service_minutes"], ["power_module"]))
+            jobs.append(
+                Job(
+                    inc.id,
+                    cid,
+                    s["lat"],
+                    s["lon"],
+                    inc.value_per_hour * 48 * float(r["risk"]),
+                    self.pcfg["dispatch_service_minutes"],
+                    ["power_module"],
+                )
+            )
         return jobs
 
     # ---------------------------------------------------------------- firmware cohorts
@@ -597,8 +794,15 @@ class Autopilot:
             if any(x.model == a.model and x.version == a.version for x in self.alerts):
                 continue
             self.alerts.append(a)
-            self.events.append({"ts": now, "incident": None, "charger_id": None, "event": "cohort_alert",
-                                "detail": f"{a.model} {a.version}: {a.rate:.3f} vs {a.peer_rate:.3f} (p={a.p_value:.1e})"})
+            self.events.append(
+                {
+                    "ts": now,
+                    "incident": None,
+                    "charger_id": None,
+                    "event": "cohort_alert",
+                    "detail": f"{a.model} {a.version}: {a.rate:.3f} vs {a.peer_rate:.3f} (p={a.p_value:.1e})",
+                }
+            )
             a.approved = self._noc_time(now, f"{a.model}{a.version}")
         return []
 
@@ -609,8 +813,15 @@ class Autopilot:
             if a.approved is None or now < a.approved:
                 continue
             if not a.stages:
-                out.append(Command("*", "halt_rollout", params={"model": a.model, "version": a.version},
-                                   reason="cohort alert approved", decided_by="operator"))
+                out.append(
+                    Command(
+                        "*",
+                        "halt_rollout",
+                        params={"model": a.model, "version": a.version},
+                        reason="cohort alert approved",
+                        decided_by="operator",
+                    )
+                )
                 a.stages.append({"stage": 0, "at": now, "share": 0.0, "chargers": []})
             last = a.stages[-1]
             if now - last["at"] < cfg["stage_hours"] * HOUR and last["stage"] > 0:
@@ -619,15 +830,23 @@ class Autopilot:
             if k > len(cfg["stages"]):
                 continue
             share = cfg["stages"][k - 1]
-            cohort = sorted([c for c in self.view.chargers.values() if c.model == a.model and c.firmware == a.version],
-                            key=lambda c: -len(c.evcomm_fails))
+            cohort = sorted(
+                [c for c in self.view.chargers.values() if c.model == a.model and c.firmware == a.version],
+                key=lambda c: -len(c.evcomm_fails),
+            )
             done = {cid for s in a.stages for cid in s["chargers"]}
             total = a.chargers
             n = max(1, math.ceil(share * total) - len(done))
             pick = [c.charger_id for c in cohort if c.charger_id not in done][:n]
             for cid in pick:
-                cmd = Command(cid, "firmware", 0, {"version": a.previous, "stage_approved": True},
-                              reason=f"staged rollback {k}/{len(cfg['stages'])}", decided_by="operator")
+                cmd = Command(
+                    cid,
+                    "firmware",
+                    0,
+                    {"version": a.previous, "stage_approved": True},
+                    reason=f"staged rollback {k}/{len(cfg['stages'])}",
+                    decided_by="operator",
+                )
                 if self.shield.check(cmd, now).allowed:
                     self.shield.record(cmd, now)
                     out.append(cmd)
@@ -640,24 +859,58 @@ class Autopilot:
         gateway's ledger and spans, the event stream."""
         incs = []
         for i in [*self.closed, *self.incidents.values()]:
-            incs.append({"id": i.id, "charger_id": i.charger_id, "opened": i.opened, "closed": i.closed,
-                         "state": i.state, "resolution": i.resolution, "symptoms": sorted(i.symptoms),
-                         "preventive": i.preventive, "parts": i.parts, "first_probs": i.first_probs,
-                         "probs": i.probs, "reading": {k: v for k, v in (i.reading or {}).items()},
-                         "tried": [list(t) for t in i.tried], "decisions": i.decisions,
-                         "value_per_hour": round(i.value_per_hour, 2), "part_used": i.part_used})
-        return {"incidents": incs, "shield": self.shield.log, "ledger": self.gateway.ledger,
-                "spans": self.gateway.spans(), "events": self.events}
+            incs.append(
+                {
+                    "id": i.id,
+                    "charger_id": i.charger_id,
+                    "opened": i.opened,
+                    "closed": i.closed,
+                    "state": i.state,
+                    "resolution": i.resolution,
+                    "symptoms": sorted(i.symptoms),
+                    "preventive": i.preventive,
+                    "parts": i.parts,
+                    "first_probs": i.first_probs,
+                    "probs": i.probs,
+                    "reading": {k: v for k, v in (i.reading or {}).items()},
+                    "tried": [list(t) for t in i.tried],
+                    "decisions": i.decisions,
+                    "value_per_hour": round(i.value_per_hour, 2),
+                    "part_used": i.part_used,
+                }
+            )
+        return {
+            "incidents": incs,
+            "shield": self.shield.log,
+            "ledger": self.gateway.ledger,
+            "spans": self.gateway.spans(),
+            "events": self.events,
+        }
 
     def report(self) -> dict[str, Any]:
-        return {"incidents": len(self.closed) + len(self.incidents), "open": len(self.incidents),
-                "ladder": self.ladder.snapshot(),
-                "beliefs": {f"{a}|{c}": [round(x, 1) for x in v] for (a, c), v in self.beliefs.items()},
-                "alerts": [{"model": a.model, "version": a.version, "raised": a.raised, "approved": a.approved,
-                            "p_value": a.p_value, "rate": a.rate, "peer_rate": a.peer_rate,
-                            "stages": [{k: v for k, v in s.items() if k != "chargers"} | {"n": len(s["chargers"])}
-                                       for s in a.stages]} for a in self.alerts],
-                "flags": self.flags}
+        return {
+            "incidents": len(self.closed) + len(self.incidents),
+            "open": len(self.incidents),
+            "ladder": self.ladder.snapshot(),
+            "beliefs": {f"{a}|{c}": [round(x, 1) for x in v] for (a, c), v in self.beliefs.items()},
+            "alerts": [
+                {
+                    "model": a.model,
+                    "version": a.version,
+                    "raised": a.raised,
+                    "approved": a.approved,
+                    "p_value": a.p_value,
+                    "rate": a.rate,
+                    "peer_rate": a.peer_rate,
+                    "stages": [
+                        {k: v for k, v in s.items() if k != "chargers"} | {"n": len(s["chargers"])}
+                        for s in a.stages
+                    ],
+                }
+                for a in self.alerts
+            ],
+            "flags": self.flags,
+        }
 
     def _reopen(self, now: int) -> list[Command]:
         """Chargers taken out of service while waiting for a technician go back into service once repaired."""

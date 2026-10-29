@@ -14,8 +14,9 @@ from .. import settings
 from ..ml import models as M
 
 
-def offline(candidate: M.TrainedModel, champion: Any | None, validation: pl.DataFrame,
-            checks: dict[str, Any]) -> dict[str, Any]:
+def offline(
+    candidate: M.TrainedModel, champion: Any | None, validation: pl.DataFrame, checks: dict[str, Any]
+) -> dict[str, Any]:
     cfg = settings.models()["promotion"]
     reasons: list[str] = []
     out: dict[str, Any] = {"candidate": {}, "champion": {}}

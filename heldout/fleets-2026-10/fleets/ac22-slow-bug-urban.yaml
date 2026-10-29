@@ -1,0 +1,127 @@
+# Held-out fleet: a dense urban destination-charging fleet dominated by AC-22 wallboxes. The AC-22
+# release 5.1.0 carries the hidden bug and is staged very slowly, starting during the history, so
+# the bug is already in the data the models learn from and each affected charger sees only a few
+# sessions a day. The DC-150 release is clean.
+
+seed: 5521
+start: "2026-01-05"          # a Monday
+history_days: 98
+test_days: 28
+
+fleet:
+  chargers: 880
+  countries:
+    DE: {share: 0.30, utc: 1, lang: de, technicians: 7}
+    GB: {share: 0.18, utc: 0, lang: en, technicians: 5}
+    NL: {share: 0.16, utc: 1, lang: nl, technicians: 4}
+    DK: {share: 0.08, utc: 1, lang: da, technicians: 2}
+    SE: {share: 0.08, utc: 1, lang: sv, technicians: 2}
+    AT: {share: 0.10, utc: 1, lang: de, technicians: 2}
+    CZ: {share: 0.10, utc: 1, lang: cs, technicians: 2}
+  chargers_per_site: [2, 8]  # car parks and supermarkets
+  site_radius_km: 60
+
+models:
+  HPC-350:   {vendor: Alpenstrom, kind: HPC, kw: 350, connectors: 2, share: 0.08, sessions_per_day: 10, firmware: ["3.4.2", "3.5.0"]}
+  DC-150:    {vendor: Nordvolt,   kind: DC,  kw: 150, connectors: 2, share: 0.22, sessions_per_day: 7,  firmware: ["2.11.0", "2.12.1"]}
+  DC-60:     {vendor: Kestrel,    kind: DC,  kw: 60,  connectors: 2, share: 0.20, sessions_per_day: 5,  firmware: ["1.9.7"]}
+  AC-22:     {vendor: Volta,      kind: AC,  kw: 22,  connectors: 2, share: 0.50, sessions_per_day: 4,  firmware: ["5.0.3", "5.1.0"]}
+
+drivers:
+  auth_mix: {rfid: 0.48, app: 0.40, contactless: 0.12}    # residents and fleet cards
+  retry_after_failure: 0.30
+  complaint_per_failure: 0.03
+  hourly_profile: [0.3, 0.2, 0.15, 0.1, 0.1, 0.2, 0.5, 1.0, 1.4, 1.3, 1.1, 1.1,
+                   1.2, 1.1, 1.0, 1.1, 1.3, 1.6, 1.8, 1.7, 1.4, 1.0, 0.7, 0.45]
+  weekend_factor: 0.95
+  site_demand_sd: 0.35
+  kwh_per_session: {HPC: 34, DC: 24, AC: 14}
+  revenue_per_kwh_eur: 0.55
+
+hazard_scale: 0.65
+faults:
+  controller_hang:
+    hazard: {HPC-350: 0.55, DC-150: 0.75, DC-60: 0.6, AC-22: 0.45}
+    effect: {start_fails: 0.97}
+    signals: {watchdog_event: 0.55}
+    remedies: {evse_reset: 0.88, station_reset: 0.95}
+    natural_end_hours: 120
+    part: null
+  connector_lock:
+    hazard: {HPC-350: 0.25, DC-150: 0.4, DC-60: 0.3, AC-22: 0.55}
+    effect: {connector_faulted: true}
+    tech_codes: {HPC-350: "E-LCK-31", DC-150: "0x2A07", DC-60: "LOCK_TIMEOUT", AC-22: "F17"}
+    remedies: {unlock: 0.65, evse_reset: 0.15, station_reset: 0.2}
+    natural_end_hours: 400
+    part: lock_actuator
+  power_module:
+    hazard: {HPC-350: 0.3, DC-150: 0.2, DC-60: 0.18, AC-22: 0.0}
+    onset_days: [2, 7]
+    effect: {derate_to: 0.55, then: charger_faulted}
+    signals: {temperature_rise_c: 20}     # winter: a clear precursor
+    tech_codes: {HPC-350: "E-PWR-12", DC-150: "0x3110", DC-60: "PM_OVERTEMP"}
+    remedies: {evse_reset: 0.05, station_reset: 0.08, relief_hours: 5, relief: 0.6}
+    natural_end_hours: null
+    part: power_module
+  rfid_reader:
+    hazard: {HPC-350: 0.18, DC-150: 0.28, DC-60: 0.3, AC-22: 0.35}
+    effect: {rfid_fails: 1.0}
+    remedies: {evse_reset: 0.25, station_reset: 0.45}
+    natural_end_hours: null
+    part: rfid_reader
+  payment_terminal:
+    hazard: {HPC-350: 0.3, DC-150: 0.35, DC-60: 0.25, AC-22: 0.0}
+    effect: {contactless_fails: 1.0}
+    signals: {terminal_event: 0.3}
+    tech_codes: {HPC-350: "PT-OFFLINE", DC-150: "PT-OFFLINE", DC-60: "PT-OFFLINE"}
+    remedies: {evse_reset: 0.55, station_reset: 0.6}
+    natural_end_hours: 200
+    part: payment_terminal
+  cable_wear:
+    hazard: {HPC-350: 0.12, DC-150: 0.15, DC-60: 0.12, AC-22: 0.12}   # tethered AC cables run over in car parks
+    effect: {ev_comm_fails: 0.45}
+    remedies: {evse_reset: 0.03, station_reset: 0.03}
+    natural_end_hours: null
+    part: cable
+  isolation_fault:
+    hazard: {HPC-350: 0.06, DC-150: 0.08, DC-60: 0.07, AC-22: 0.06}
+    effect: {charger_faulted: true}
+    tech_codes: {HPC-350: "E-ISO-02", DC-150: "0x1F01", DC-60: "GROUND_FAULT", AC-22: "F03"}
+    unsafe_to_reset: true
+    remedies: {evse_reset: 0.0, station_reset: 0.0}
+    natural_end_hours: null
+    part: cable
+  comm_loss:
+    hazard: {HPC-350: 0.3, DC-150: 0.35, DC-60: 0.4, AC-22: 0.55}    # underground car parks
+    effect: {offline: true, still_charges: 0.75}
+    remedies: {}
+    natural_end_hours: 24
+    part: modem
+  grid_outage:
+    hazard_per_site: 0.06
+    duration_hours: [1, 6]
+    effect: {offline: true, still_charges: 0.0}
+    part: null
+
+firmware_rollouts:
+  - {model: DC-150, version: "2.12.1", day: 20, share_per_day: 0.08, bug: null}
+  - {model: AC-22,  version: "5.1.0",  day: 80, share_per_day: 0.025,
+     bug: {ev_comm_fails: 0.55, affected_ev_share: 0.3}}    # staged rollout, starts inside the history
+rollback_remedies: {firmware_rollback: 0.97}
+
+field_service:
+  workday_local: [8, 17]
+  workdays: [0, 1, 2, 3, 4]
+  speed_kmh: 35               # city traffic
+  visit_hours: {diagnose: 0.75, repair: 1.0}
+  van_stock: {lock_actuator: 0.75, power_module: 0.25, rfid_reader: 0.6, payment_terminal: 0.5,
+              cable: 0.5, modem: 0.8}
+  part_lead_days: {lock_actuator: 2, power_module: 4, rfid_reader: 2, payment_terminal: 3, cable: 3, modem: 1}
+  visit_cost_eur: 210
+  km_cost_eur: 0.5
+  note_language_local: 0.8
+  note_cause_wrong: 0.12
+  structured_part_field: 0.6
+
+untrusted_text:
+  injection_share: 0.02

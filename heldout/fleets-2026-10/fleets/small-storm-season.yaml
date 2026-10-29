@@ -1,0 +1,124 @@
+# Held-out fleet: a small, rural northern fleet in winter storm season. Grid outages are frequent
+# and long, and chargers on weak rural LTE drop off OCPP often and for longer, and fewer keep
+# charging while offline. Most of what looks like a dead charger is not a charger fault. Sites are
+# far apart. No firmware release in this fleet carries a bug.
+
+seed: 1187
+start: "2025-12-01"          # a Monday
+history_days: 91
+test_days: 28
+
+fleet:
+  chargers: 340
+  countries:
+    SE: {share: 0.30, utc: 1, lang: sv, technicians: 2}
+    DK: {share: 0.20, utc: 1, lang: da, technicians: 2}
+    PL: {share: 0.20, utc: 1, lang: pl, technicians: 2}
+    DE: {share: 0.15, utc: 1, lang: de, technicians: 2}
+    NL: {share: 0.15, utc: 1, lang: nl, technicians: 1}
+  chargers_per_site: [1, 4]
+  site_radius_km: 220
+
+models:
+  HPC-350:   {vendor: Alpenstrom, kind: HPC, kw: 350, connectors: 2, share: 0.20, sessions_per_day: 9,  firmware: ["3.4.2", "3.5.0"]}
+  DC-150:    {vendor: Nordvolt,   kind: DC,  kw: 150, connectors: 2, share: 0.34, sessions_per_day: 7,  firmware: ["2.11.0", "2.12.1"]}
+  DC-60:     {vendor: Kestrel,    kind: DC,  kw: 60,  connectors: 2, share: 0.22, sessions_per_day: 4,  firmware: ["1.9.7"]}
+  AC-22:     {vendor: Volta,      kind: AC,  kw: 22,  connectors: 2, share: 0.24, sessions_per_day: 2,  firmware: ["5.0.3", "5.1.0"]}
+
+drivers:
+  auth_mix: {rfid: 0.45, app: 0.35, contactless: 0.20}
+  retry_after_failure: 0.4
+  complaint_per_failure: 0.05
+  hourly_profile: [0.15, 0.1, 0.1, 0.1, 0.15, 0.3, 0.6, 0.9, 1.1, 1.2, 1.2, 1.3,
+                   1.4, 1.3, 1.3, 1.4, 1.5, 1.6, 1.5, 1.3, 1.1, 0.8, 0.5, 0.3]
+  weekend_factor: 0.9
+  site_demand_sd: 0.6
+  kwh_per_session: {HPC: 42, DC: 30, AC: 13}
+  revenue_per_kwh_eur: 0.58
+
+hazard_scale: 0.7
+faults:
+  controller_hang:
+    hazard: {HPC-350: 0.55, DC-150: 0.75, DC-60: 0.6, AC-22: 0.35}
+    effect: {start_fails: 0.97}
+    signals: {watchdog_event: 0.55}
+    remedies: {evse_reset: 0.88, station_reset: 0.95}
+    natural_end_hours: 120
+    part: null
+  connector_lock:
+    hazard: {HPC-350: 0.3, DC-150: 0.45, DC-60: 0.35, AC-22: 0.5}
+    effect: {connector_faulted: true}
+    tech_codes: {HPC-350: "E-LCK-31", DC-150: "0x2A07", DC-60: "LOCK_TIMEOUT", AC-22: "F17"}
+    remedies: {unlock: 0.58, evse_reset: 0.15, station_reset: 0.2}
+    natural_end_hours: 400
+    part: lock_actuator
+  power_module:
+    hazard: {HPC-350: 0.3, DC-150: 0.2, DC-60: 0.16, AC-22: 0.0}
+    onset_days: [2, 6]
+    effect: {derate_to: 0.55, then: charger_faulted}
+    signals: {temperature_rise_c: 18}
+    tech_codes: {HPC-350: "E-PWR-12", DC-150: "0x3110", DC-60: "PM_OVERTEMP"}
+    remedies: {evse_reset: 0.05, station_reset: 0.08, relief_hours: 5, relief: 0.6}
+    natural_end_hours: null
+    part: power_module
+  rfid_reader:
+    hazard: {HPC-350: 0.18, DC-150: 0.28, DC-60: 0.3, AC-22: 0.32}
+    effect: {rfid_fails: 1.0}
+    remedies: {evse_reset: 0.25, station_reset: 0.45}
+    natural_end_hours: null
+    part: rfid_reader
+  payment_terminal:
+    hazard: {HPC-350: 0.35, DC-150: 0.4, DC-60: 0.3, AC-22: 0.0}   # terminals need the same weak uplink
+    effect: {contactless_fails: 1.0}
+    signals: {terminal_event: 0.3}
+    tech_codes: {HPC-350: "PT-OFFLINE", DC-150: "PT-OFFLINE", DC-60: "PT-OFFLINE"}
+    remedies: {evse_reset: 0.55, station_reset: 0.6}
+    natural_end_hours: 150
+    part: payment_terminal
+  cable_wear:
+    hazard: {HPC-350: 0.12, DC-150: 0.15, DC-60: 0.12, AC-22: 0.05}
+    effect: {ev_comm_fails: 0.45}
+    remedies: {evse_reset: 0.03, station_reset: 0.03}
+    natural_end_hours: null
+    part: cable
+  isolation_fault:
+    hazard: {HPC-350: 0.08, DC-150: 0.1, DC-60: 0.09, AC-22: 0.06}   # water ingress
+    effect: {charger_faulted: true}
+    tech_codes: {HPC-350: "E-ISO-02", DC-150: "0x1F01", DC-60: "GROUND_FAULT", AC-22: "F03"}
+    unsafe_to_reset: true
+    remedies: {evse_reset: 0.0, station_reset: 0.0}
+    natural_end_hours: null
+    part: cable
+  comm_loss:
+    hazard: {HPC-350: 0.6, DC-150: 0.75, DC-60: 0.85, AC-22: 0.95}
+    effect: {offline: true, still_charges: 0.45}
+    remedies: {}
+    natural_end_hours: 55
+    part: modem
+  grid_outage:
+    hazard_per_site: 0.7
+    duration_hours: [1, 36]
+    effect: {offline: true, still_charges: 0.0}
+    part: null
+
+firmware_rollouts:
+  - {model: DC-150,  version: "2.12.1", day: 40, share_per_day: 0.06, bug: null}
+  - {model: HPC-350, version: "3.5.0",  day: 95, share_per_day: 0.10, bug: null}
+rollback_remedies: {firmware_rollback: 0.97}
+
+field_service:
+  workday_local: [8, 16]                  # short winter daylight
+  workdays: [0, 1, 2, 3, 4]
+  speed_kmh: 60
+  visit_hours: {diagnose: 0.75, repair: 1.25}
+  van_stock: {lock_actuator: 0.7, power_module: 0.25, rfid_reader: 0.6, payment_terminal: 0.5,
+              cable: 0.45, modem: 0.6}
+  part_lead_days: {lock_actuator: 3, power_module: 5, rfid_reader: 3, payment_terminal: 3, cable: 4, modem: 3}
+  visit_cost_eur: 260
+  km_cost_eur: 0.5
+  note_language_local: 0.85
+  note_cause_wrong: 0.1
+  structured_part_field: 0.6
+
+untrusted_text:
+  injection_share: 0.02

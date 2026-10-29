@@ -20,18 +20,33 @@ def policy(use_case: str) -> str:
     inbound = ET.SubElement(root, "inbound")
     ET.SubElement(inbound, "base")
     ET.SubElement(inbound, "set-header", {"name": "x-use-case", "exists-action": "override"}).append(
-        _value(use_case))
+        _value(use_case)
+    )
     ET.SubElement(inbound, "llm-content-safety", {"backend-id": "content-safety", "shield-prompt": "true"})
-    ET.SubElement(inbound, "llm-token-limit", {
-        "counter-key": f"@(\"{use_case}\")", "tokens-per-minute": str(uc["tokens_per_minute"]),
-        "estimate-prompt-tokens": "true", "remaining-tokens-variable-name": "remainingTokens"})
+    ET.SubElement(
+        inbound,
+        "llm-token-limit",
+        {
+            "counter-key": f'@("{use_case}")',
+            "tokens-per-minute": str(uc["tokens_per_minute"]),
+            "estimate-prompt-tokens": "true",
+            "remaining-tokens-variable-name": "remainingTokens",
+        },
+    )
     metric = ET.SubElement(inbound, "llm-emit-token-metric", {"namespace": "charge-ops"})
     ET.SubElement(metric, "dimension", {"name": "use-case", "value": use_case})
     ET.SubElement(metric, "dimension", {"name": "owner", "value": uc["owner"]})
-    ET.SubElement(metric, "dimension", {"name": "caller", "value": "@(context.Request.Headers.GetValueOrDefault(\"x-caller\", \"unknown\"))"})
+    ET.SubElement(
+        metric,
+        "dimension",
+        {"name": "caller", "value": '@(context.Request.Headers.GetValueOrDefault("x-caller", "unknown"))'},
+    )
     if uc.get("cache"):
-        ET.SubElement(inbound, "llm-semantic-cache-lookup", {"score-threshold": "0.05",
-                                                             "embeddings-backend-id": "embeddings"})
+        ET.SubElement(
+            inbound,
+            "llm-semantic-cache-lookup",
+            {"score-threshold": "0.05", "embeddings-backend-id": "embeddings"},
+        )
     remote = [m for m in uc["route"] if cfg["models"][m]["provider"] != "local"]
     ET.SubElement(inbound, "set-backend-service", {"backend-id": f"pool-{use_case}"})
     backend = ET.SubElement(root, "backend")
@@ -42,9 +57,14 @@ def policy(use_case: str) -> str:
         ET.SubElement(outbound, "llm-semantic-cache-store", {"duration": "3600"})
     on_error = ET.SubElement(root, "on-error")
     ET.SubElement(on_error, "base")
-    root.insert(0, ET.Comment(f" generated from config/gateway.yaml use case {use_case}; backends in priority order: "
-                              f"{', '.join(remote)}; daily budget EUR {uc['daily_budget_eur']} is enforced by the "
-                              f"cost alert in azure/infra/main.bicep "))
+    root.insert(
+        0,
+        ET.Comment(
+            f" generated from config/gateway.yaml use case {use_case}; backends in priority order: "
+            f"{', '.join(remote)}; daily budget EUR {uc['daily_budget_eur']} is enforced by the "
+            f"cost alert in azure/infra/main.bicep "
+        ),
+    )
     return minidom.parseString(ET.tostring(root)).toprettyxml(indent="  ")
 
 

@@ -29,7 +29,9 @@ from .providers import Provider, estimate_tokens, make
 
 DAY = 86400
 LATENCY_MODEL = {  # modelled (not measured) latency of real providers, for the simulated stand-in
-    "claude-haiku-5-5": (0.45, 0.006), "claude-sonnet-5-5": (1.1, 0.018), "claude-opus-5-5": (1.8, 0.03),
+    "claude-haiku-5-5": (0.45, 0.006),
+    "claude-sonnet-5-5": (1.1, 0.018),
+    "claude-opus-5-5": (1.8, 0.03),
     "distilled-notes": (0.002, 0.0),
 }
 
@@ -84,8 +86,14 @@ class Limits:
 
 
 class Gateway:
-    def __init__(self, provider: str | None = None, limits: Limits | None = None, *, guards: bool = True,
-                 fail: dict[str, float] | None = None) -> None:
+    def __init__(
+        self,
+        provider: str | None = None,
+        limits: Limits | None = None,
+        *,
+        guards: bool = True,
+        fail: dict[str, float] | None = None,
+    ) -> None:
         self.cfg = settings.gateway()
         self.provider_name = provider or self.cfg["providers"]["default"]
         self.providers: dict[str, Provider] = {}
@@ -135,15 +143,18 @@ class Gateway:
             if prompt_tokens > uc["max_input_tokens"]:
                 clean = self._shrink(use_case, clean, uc["max_input_tokens"])
                 prompt_tokens = estimate_tokens(prompts.render(use_case, clean))
-            key = hashlib.sha256(json.dumps([use_case, clean], sort_keys=True, default=str).encode()).hexdigest()
+            key = hashlib.sha256(
+                json.dumps([use_case, clean], sort_keys=True, default=str).encode()
+            ).hexdigest()
             if uc.get("cache") and key in self.cache:
                 _, out, tin, tout = self.cache[key]
                 res = Result(out, "cache", 0, 0, 0.0, 1.0, True, rep, trace_id)
                 self._record(use_case, caller, now, res, "cache_hit")
                 span.set_attribute("cpa.cached", True)
                 return res
-            if not self.limits.take_tokens(use_case, now, prompt_tokens + uc["max_output_tokens"],
-                                           uc["tokens_per_minute"]):
+            if not self.limits.take_tokens(
+                use_case, now, prompt_tokens + uc["max_output_tokens"], uc["tokens_per_minute"]
+            ):
                 self._record(use_case, caller, now, None, "rate_limited")
                 raise GatewayError("rate_limited", use_case)
             last_err = ""
@@ -156,7 +167,9 @@ class Gateway:
                 try:
                     if self.fail.get(model, 0) and _unit(trace_id, model) < self.fail[model]:
                         raise RuntimeError("provider unavailable")
-                    text, tin, tout = self.provider_for(model).complete(model, use_case, clean, uc["max_output_tokens"])
+                    text, tin, tout = self.provider_for(model).complete(
+                        model, use_case, clean, uc["max_output_tokens"]
+                    )
                 except Exception as e:  # provider error: count it, try the next model
                     self.limits.settle(use_case, now, worst, 0.0)
                     self._trip(model, now)
@@ -166,12 +179,17 @@ class Gateway:
                 self.limits.settle(use_case, now, worst, cost)
                 base, per = LATENCY_MODEL.get(model, (0.5, 0.01))
                 latency = (time.perf_counter() - t0) * 1000 + (
-                    (base + per * tout) * 1000 if self.provider_name == "simulated" else 0)
+                    (base + per * tout) * 1000 if self.provider_name == "simulated" else 0
+                )
                 try:
                     out = json.loads(text)
                 except json.JSONDecodeError:
                     out = None
-                ok = guard.check_output(uc["output_schema"], out, rep) if self.guards else isinstance(out, dict)
+                ok = (
+                    guard.check_output(uc["output_schema"], out, rep)
+                    if self.guards
+                    else isinstance(out, dict)
+                )
                 span.set_attribute("gen_ai.provider.name", self.provider_for(model).name)
                 span.set_attribute("gen_ai.request.model", model)
                 span.set_attribute("gen_ai.response.model", model)
@@ -179,8 +197,13 @@ class Gateway:
                 span.set_attribute("gen_ai.usage.output_tokens", tout)
                 span.set_attribute("cpa.cost_eur", cost)
                 if not ok:
-                    self._record(use_case, caller, now, Result({}, model, tin, tout, cost, latency, False, rep,
-                                                               trace_id), "output_rejected")
+                    self._record(
+                        use_case,
+                        caller,
+                        now,
+                        Result({}, model, tin, tout, cost, latency, False, rep, trace_id),
+                        "output_rejected",
+                    )
                     last_err = "; ".join(rep.output_errors)
                     rep.output_errors = []
                     continue
@@ -217,17 +240,32 @@ class Gateway:
         return out
 
     def _record(self, uc: str, caller: str, now: float, r: Result | None, outcome: str) -> None:
-        self.ledger.append({
-            "ts": int(now), "use_case": uc, "caller": caller, "outcome": outcome,
-            "model": r.model if r else None, "tokens_in": r.tokens_in if r else 0, "tokens_out": r.tokens_out if r else 0,
-            "cost_eur": round(r.cost_eur, 6) if r else 0.0, "latency_ms": round(r.latency_ms, 1) if r else None,
-            "quarantined": len(r.guard.quarantined) if r else 0,
-            "masked": sum(r.guard.masked.values()) if r else 0, "trace_id": r.trace_id if r else None})
+        self.ledger.append(
+            {
+                "ts": int(now),
+                "use_case": uc,
+                "caller": caller,
+                "outcome": outcome,
+                "model": r.model if r else None,
+                "tokens_in": r.tokens_in if r else 0,
+                "tokens_out": r.tokens_out if r else 0,
+                "cost_eur": round(r.cost_eur, 6) if r else 0.0,
+                "latency_ms": round(r.latency_ms, 1) if r else None,
+                "quarantined": len(r.guard.quarantined) if r else 0,
+                "masked": sum(r.guard.masked.values()) if r else 0,
+                "trace_id": r.trace_id if r else None,
+            }
+        )
 
     def spans(self) -> list[dict[str, Any]]:
-        return [{"name": s.name, "attributes": dict(s.attributes or {}),
-                 "duration_ms": (s.end_time - s.start_time) / 1e6 if s.end_time else None}
-                for s in self.exporter.get_finished_spans()]
+        return [
+            {
+                "name": s.name,
+                "attributes": dict(s.attributes or {}),
+                "duration_ms": (s.end_time - s.start_time) / 1e6 if s.end_time else None,
+            }
+            for s in self.exporter.get_finished_spans()
+        ]
 
 
 def _unit(*key: Any) -> float:

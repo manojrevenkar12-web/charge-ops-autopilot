@@ -1,0 +1,6 @@
+build/
+.venv/
+web/node_modules/
+reports/
+**/__pycache__
+.git

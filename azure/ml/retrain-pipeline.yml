@@ -1,0 +1,34 @@
+$schema: https://azuremlschemas.azureedge.net/latest/pipelineJob.schema.json
+type: pipeline
+display_name: charge-ops weekly retrain
+description: >
+  The same steps the autopilot runs in-process every Monday (src/cpa/mlops/lifecycle.py): build the
+  training tables from the OCPP record, train challengers, gate them against the champions on the
+  most recent weeks, register what passes. Promotion to champion happens after the shadow period,
+  in the autopilot, never in this job.
+settings:
+  default_compute: azureml:cpu-cluster
+  continue_on_step_failure: false
+inputs:
+  ocpp_record: {type: uri_folder, path: azureml:ocpp-record@latest}
+jobs:
+  prepare:
+    type: command
+    environment: azureml:charge-ops-train:1
+    code: ../..
+    command: python -m cpa.jobs prepare --observed ${{inputs.ocpp_record}} --out ${{outputs.prepared}}
+    inputs: {ocpp_record: ${{parent.inputs.ocpp_record}}}
+    outputs: {prepared: {type: uri_folder}}
+  train:
+    type: command
+    environment: azureml:charge-ops-train:1
+    code: ../..
+    command: python -m cpa.jobs train --prepared ${{inputs.prepared}} --out ${{outputs.candidates}}
+    inputs: {prepared: ${{parent.jobs.prepare.outputs.prepared}}}
+    outputs: {candidates: {type: uri_folder}}
+  gate_and_register:
+    type: command
+    environment: azureml:charge-ops-train:1
+    code: ../..
+    command: python -m cpa.jobs gate --candidates ${{inputs.candidates}} --register challenger
+    inputs: {candidates: ${{parent.jobs.train.outputs.candidates}}}

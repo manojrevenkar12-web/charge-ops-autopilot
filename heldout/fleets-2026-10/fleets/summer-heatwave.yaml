@@ -1,0 +1,131 @@
+# Held-out fleet: a hot summer with motorway holiday traffic. Power modules fail two to three times
+# as often, trip sooner after onset and show a weaker temperature rise; replacement modules are
+# scarce. Clocks are on summer time. A DC-60 release (not HPC) carries the hidden bug.
+
+seed: 3117
+start: "2026-06-01"          # a Monday
+history_days: 84
+test_days: 28
+
+fleet:
+  chargers: 860
+  countries:                 # summer time (UTC offsets one hour later than winter)
+    DE: {share: 0.22, utc: 2, lang: de, technicians: 7}
+    GB: {share: 0.10, utc: 1, lang: en, technicians: 4}
+    IT: {share: 0.18, utc: 2, lang: it, technicians: 5}
+    NL: {share: 0.06, utc: 2, lang: nl, technicians: 2}
+    SE: {share: 0.03, utc: 2, lang: sv, technicians: 1}
+    DK: {share: 0.03, utc: 2, lang: da, technicians: 1}
+    PL: {share: 0.08, utc: 2, lang: pl, technicians: 3}
+    CZ: {share: 0.06, utc: 2, lang: cs, technicians: 2}
+    AT: {share: 0.08, utc: 2, lang: de, technicians: 3}
+    HU: {share: 0.08, utc: 2, lang: hu, technicians: 2}
+    RO: {share: 0.08, utc: 3, lang: ro, technicians: 2}
+  chargers_per_site: [2, 6]
+  site_radius_km: 180
+
+models:
+  HPC-350:   {vendor: Alpenstrom, kind: HPC, kw: 350, connectors: 2, share: 0.28, sessions_per_day: 14, firmware: ["3.4.2", "3.5.0"]}
+  DC-150:    {vendor: Nordvolt,   kind: DC,  kw: 150, connectors: 2, share: 0.28, sessions_per_day: 9,  firmware: ["2.11.0", "2.12.1"]}
+  DC-60:     {vendor: Kestrel,    kind: DC,  kw: 60,  connectors: 2, share: 0.20, sessions_per_day: 5,  firmware: ["1.9.7", "1.10.0"]}
+  AC-22:     {vendor: Volta,      kind: AC,  kw: 22,  connectors: 2, share: 0.24, sessions_per_day: 3,  firmware: ["5.0.3", "5.1.0"]}
+
+drivers:
+  auth_mix: {rfid: 0.36, app: 0.40, contactless: 0.24}   # more tourists paying by card
+  retry_after_failure: 0.40
+  complaint_per_failure: 0.05
+  hourly_profile: [0.25, 0.2, 0.15, 0.1, 0.15, 0.3, 0.55, 0.85, 1.1, 1.3, 1.4, 1.5,
+                   1.5, 1.5, 1.4, 1.4, 1.5, 1.6, 1.6, 1.5, 1.3, 1.0, 0.7, 0.4]
+  weekend_factor: 1.15        # holiday travel at weekends
+  site_demand_sd: 0.55
+  kwh_per_session: {HPC: 42, DC: 28, AC: 12}
+  revenue_per_kwh_eur: 0.65
+
+hazard_scale: 0.75
+faults:
+  controller_hang:
+    hazard: {HPC-350: 0.5, DC-150: 0.7, DC-60: 0.6, AC-22: 0.35}
+    effect: {start_fails: 0.95}
+    signals: {watchdog_event: 0.5}
+    remedies: {evse_reset: 0.85, station_reset: 0.94}
+    natural_end_hours: 110
+    part: null
+  connector_lock:
+    hazard: {HPC-350: 0.25, DC-150: 0.35, DC-60: 0.3, AC-22: 0.4}
+    effect: {connector_faulted: true}
+    tech_codes: {HPC-350: "E-LCK-31", DC-150: "0x2A07", DC-60: "LOCK_TIMEOUT", AC-22: "F17"}
+    remedies: {unlock: 0.6, evse_reset: 0.15, station_reset: 0.2}
+    natural_end_hours: 400
+    part: lock_actuator
+  power_module:
+    hazard: {HPC-350: 0.9, DC-150: 0.6, DC-60: 0.5, AC-22: 0.0}
+    onset_days: [1, 3]                    # heat shortens the latent phase
+    effect: {derate_to: 0.5, then: charger_faulted}
+    signals: {temperature_rise_c: 11}     # weaker precursor against a hot baseline
+    tech_codes: {HPC-350: "E-PWR-12", DC-150: "0x3110", DC-60: "PM_OVERTEMP"}
+    remedies: {evse_reset: 0.04, station_reset: 0.06, relief_hours: 3, relief: 0.45}
+    natural_end_hours: null
+    part: power_module
+  rfid_reader:
+    hazard: {HPC-350: 0.18, DC-150: 0.25, DC-60: 0.3, AC-22: 0.3}
+    effect: {rfid_fails: 1.0}
+    remedies: {evse_reset: 0.25, station_reset: 0.45}
+    natural_end_hours: null
+    part: rfid_reader
+  payment_terminal:
+    hazard: {HPC-350: 0.45, DC-150: 0.45, DC-60: 0.3, AC-22: 0.0}
+    effect: {contactless_fails: 1.0}
+    signals: {terminal_event: 0.3}
+    tech_codes: {HPC-350: "PT-OFFLINE", DC-150: "PT-OFFLINE", DC-60: "PT-OFFLINE"}
+    remedies: {evse_reset: 0.5, station_reset: 0.6}
+    natural_end_hours: 180
+    part: payment_terminal
+  cable_wear:
+    hazard: {HPC-350: 0.15, DC-150: 0.15, DC-60: 0.12, AC-22: 0.05}
+    effect: {ev_comm_fails: 0.45}
+    remedies: {evse_reset: 0.03, station_reset: 0.03}
+    natural_end_hours: null
+    part: cable
+  isolation_fault:
+    hazard: {HPC-350: 0.06, DC-150: 0.08, DC-60: 0.07, AC-22: 0.05}
+    effect: {charger_faulted: true}
+    tech_codes: {HPC-350: "E-ISO-02", DC-150: "0x1F01", DC-60: "GROUND_FAULT", AC-22: "F03"}
+    unsafe_to_reset: true
+    remedies: {evse_reset: 0.0, station_reset: 0.0}
+    natural_end_hours: null
+    part: cable
+  comm_loss:
+    hazard: {HPC-350: 0.2, DC-150: 0.25, DC-60: 0.3, AC-22: 0.35}
+    effect: {offline: true, still_charges: 0.7}
+    remedies: {}
+    natural_end_hours: 30
+    part: modem
+  grid_outage:
+    hazard_per_site: 0.2                  # summer thunderstorms
+    duration_hours: [1, 10]
+    effect: {offline: true, still_charges: 0.0}
+    part: null
+
+firmware_rollouts:
+  - {model: DC-150, version: "2.12.1", day: 30, share_per_day: 0.08, bug: null}
+  - {model: AC-22,  version: "5.1.0",  day: 55, share_per_day: 0.10, bug: null}
+  - {model: DC-60,  version: "1.10.0", day: 88, share_per_day: 0.09,
+     bug: {ev_comm_fails: 0.4, affected_ev_share: 0.5}}
+rollback_remedies: {firmware_rollback: 0.97}
+
+field_service:
+  workday_local: [7, 16]                  # summer hours, start early before the heat
+  workdays: [0, 1, 2, 3, 4]
+  speed_kmh: 65                           # holiday traffic
+  visit_hours: {diagnose: 0.75, repair: 1.25}
+  van_stock: {lock_actuator: 0.7, power_module: 0.12, rfid_reader: 0.6, payment_terminal: 0.5,
+              cable: 0.45, modem: 0.8}
+  part_lead_days: {lock_actuator: 2, power_module: 9, rfid_reader: 2, payment_terminal: 4, cable: 3, modem: 1}
+  visit_cost_eur: 250
+  km_cost_eur: 0.45
+  note_language_local: 0.8
+  note_cause_wrong: 0.1
+  structured_part_field: 0.6
+
+untrusted_text:
+  injection_share: 0.02

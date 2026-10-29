@@ -1,0 +1,7 @@
+$schema: https://azuremlschemas.azureedge.net/latest/environment.schema.json
+name: charge-ops-train
+version: "1"
+description: Python 3.13 with the project installed (uv), built from the repository's Dockerfile.
+build:
+  path: ../..
+  dockerfile_path: Dockerfile

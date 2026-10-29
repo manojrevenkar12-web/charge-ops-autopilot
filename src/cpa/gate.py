@@ -37,6 +37,13 @@ def gate(results: dict[str, Any], cfg: dict[str, Any] | None = None) -> dict[str
             target = c["value"]
         ok = target is not None and OPS[c["op"]](value, target)
         fmt = (lambda x: f"{x:.4g}") if isinstance(value, float) else str
-        checks.append({"id": c["id"], "passed": bool(ok), "value": value, "target": target,
-                       "detail": f"{run} {c['metric']} = {fmt(value)} {c['op']} {fmt(target) if target is not None else '?'}"})
+        checks.append(
+            {
+                "id": c["id"],
+                "passed": bool(ok),
+                "value": value,
+                "target": target,
+                "detail": f"{run} {c['metric']} = {fmt(value)} {c['op']} {fmt(target) if target is not None else '?'}",
+            }
+        )
     return {"passed": all(c["passed"] for c in checks), "checks": checks}

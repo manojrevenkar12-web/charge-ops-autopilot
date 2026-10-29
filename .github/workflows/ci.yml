@@ -1,0 +1,77 @@
+name: ci
+on:
+  push: {branches: [main]}
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      heldout: {description: "held-out set to run once (its first run is recorded)", required: false, default: ""}
+
+jobs:
+  python:
+    name: lint, unit and integration tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: {POSTGRES_USER: cpa, POSTGRES_PASSWORD: cpa, POSTGRES_DB: cpa_test}
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U cpa" --health-interval 5s --health-retries 10
+    env:
+      CPA_TEST_DATABASE_URL: postgresql://cpa:cpa@localhost:5432/cpa_test
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+      - run: scripts/ci-run.sh "uv sync" uv sync --frozen
+      - run: scripts/ci-run.sh "ruff" uv run ruff check src tests
+      - run: scripts/ci-run.sh "ruff format" uv run ruff format --check src tests
+      - run: scripts/ci-run.sh "pytest" uv run pytest -q
+      - run: scripts/ci-run.sh "APIM policies current" bash -c "uv run cpa apim && git diff --exit-code azure/apim"
+
+  pipeline:
+    name: the whole run, judged by its gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+      - run: scripts/ci-run.sh "uv sync" uv sync --frozen
+      - run: scripts/ci-run.sh "cpa run" uv run cpa run
+      - run: scripts/ci-run.sh "first runs unchanged" git diff --exit-code -- 'reports/heldout/*/first_run.json'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: reports, path: reports/}
+
+  web:
+    name: operations room (unit and end-to-end under the production CSP)
+    runs-on: ubuntu-latest
+    defaults: {run: {working-directory: web}}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: {node-version: 22, cache: npm, cache-dependency-path: web/package-lock.json}
+      - run: ../scripts/ci-run.sh "npm ci" npm ci
+      - run: ../scripts/ci-run.sh "tsc" npx tsc --noEmit -p .
+      - run: ../scripts/ci-run.sh "vitest" npm test
+      - run: ../scripts/ci-run.sh "playwright install" npx playwright install --with-deps chromium
+      - run: ../scripts/ci-run.sh "build" npm run build
+      - run: ../scripts/ci-run.sh "playwright" npx playwright test
+
+  azure:
+    name: Azure templates and image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: scripts/ci-run.sh "bicep build" az bicep build --file azure/infra/main.bicep --stdout
+      - run: scripts/ci-run.sh "docker build" docker build -t charge-ops-autopilot:ci .
+
+  heldout:
+    if: github.event_name == 'workflow_dispatch' && inputs.heldout != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+      - run: scripts/ci-run.sh "uv sync" uv sync --frozen
+      - run: scripts/ci-run.sh "held-out ${{ inputs.heldout }}" uv run cpa heldout "${{ inputs.heldout }}"
+      - uses: actions/upload-artifact@v4
+        with: {name: heldout, path: reports/heldout/}

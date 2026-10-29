@@ -143,40 +143,90 @@ PART_NEEDED = {
 }
 
 COMPLAINTS: dict[str, dict[str, str]] = {
-    "rfid": {"en": "My card does nothing at {cid}, tried twice.", "de": "Meine Karte geht an {cid} nicht, zweimal versucht.",
-             "it": "La mia tessera non funziona a {cid}.", "nl": "Mijn pas werkt niet bij {cid}.",
-             "sv": "Mitt kort fungerar inte vid {cid}.", "da": "Mit kort virker ikke ved {cid}.",
-             "pl": "Moja karta nie działa przy {cid}.", "cs": "Moje karta nefunguje u {cid}.",
-             "hu": "A kártyám nem működik itt: {cid}.", "ro": "Cardul meu nu funcționează la {cid}."},
-    "contactless": {"en": "Card payment fails at {cid}.", "de": "Kartenzahlung an {cid} klappt nicht.",
-                    "it": "Il pagamento con carta non va a {cid}.", "nl": "Pinbetaling mislukt bij {cid}.",
-                    "sv": "Kortbetalning misslyckas vid {cid}.", "da": "Kortbetaling fejler ved {cid}.",
-                    "pl": "Płatność kartą nie działa przy {cid}.", "cs": "Platba kartou u {cid} nefunguje.",
-                    "hu": "A kártyás fizetés nem megy itt: {cid}.", "ro": "Plata cu cardul nu merge la {cid}."},
-    "start": {"en": "Charger {cid} shows available but will not start.", "de": "Säule {cid} zeigt frei, startet aber nicht.",
-              "it": "La colonnina {cid} è libera ma non parte.", "nl": "Laadpaal {cid} is vrij maar start niet.",
-              "sv": "Laddare {cid} är ledig men startar inte.", "da": "Lader {cid} er ledig men starter ikke.",
-              "pl": "Ładowarka {cid} jest wolna, ale nie startuje.", "cs": "Nabíječka {cid} je volná, ale nespustí se.",
-              "hu": "A(z) {cid} töltő szabad, de nem indul.", "ro": "Stația {cid} e liberă dar nu pornește."},
-    "stops": {"en": "Charging at {cid} stops after a minute.", "de": "Laden an {cid} bricht nach einer Minute ab.",
-              "it": "La ricarica a {cid} si ferma dopo un minuto.", "nl": "Laden bij {cid} stopt na een minuut.",
-              "sv": "Laddningen vid {cid} avbryts efter en minut.", "da": "Opladningen ved {cid} stopper efter et minut.",
-              "pl": "Ładowanie przy {cid} przerywa się po minucie.", "cs": "Nabíjení u {cid} se po minutě přeruší.",
-              "hu": "A töltés itt: {cid} egy perc után leáll.", "ro": "Încărcarea la {cid} se oprește după un minut."},
-    "offline": {"en": "Charger {cid} is dead, screen black.", "de": "Säule {cid} ist tot, Display schwarz.",
-                "it": "La colonnina {cid} è spenta.", "nl": "Laadpaal {cid} is dood, scherm zwart.",
-                "sv": "Laddare {cid} är död, skärmen svart.", "da": "Lader {cid} er død, skærmen sort.",
-                "pl": "Ładowarka {cid} nie działa, ekran czarny.", "cs": "Nabíječka {cid} je mrtvá, displej černý.",
-                "hu": "A(z) {cid} töltő halott, a kijelző fekete.", "ro": "Stația {cid} nu merge, ecranul e negru."},
+    "rfid": {
+        "en": "My card does nothing at {cid}, tried twice.",
+        "de": "Meine Karte geht an {cid} nicht, zweimal versucht.",
+        "it": "La mia tessera non funziona a {cid}.",
+        "nl": "Mijn pas werkt niet bij {cid}.",
+        "sv": "Mitt kort fungerar inte vid {cid}.",
+        "da": "Mit kort virker ikke ved {cid}.",
+        "pl": "Moja karta nie działa przy {cid}.",
+        "cs": "Moje karta nefunguje u {cid}.",
+        "hu": "A kártyám nem működik itt: {cid}.",
+        "ro": "Cardul meu nu funcționează la {cid}.",
+    },
+    "contactless": {
+        "en": "Card payment fails at {cid}.",
+        "de": "Kartenzahlung an {cid} klappt nicht.",
+        "it": "Il pagamento con carta non va a {cid}.",
+        "nl": "Pinbetaling mislukt bij {cid}.",
+        "sv": "Kortbetalning misslyckas vid {cid}.",
+        "da": "Kortbetaling fejler ved {cid}.",
+        "pl": "Płatność kartą nie działa przy {cid}.",
+        "cs": "Platba kartou u {cid} nefunguje.",
+        "hu": "A kártyás fizetés nem megy itt: {cid}.",
+        "ro": "Plata cu cardul nu merge la {cid}.",
+    },
+    "start": {
+        "en": "Charger {cid} shows available but will not start.",
+        "de": "Säule {cid} zeigt frei, startet aber nicht.",
+        "it": "La colonnina {cid} è libera ma non parte.",
+        "nl": "Laadpaal {cid} is vrij maar start niet.",
+        "sv": "Laddare {cid} är ledig men startar inte.",
+        "da": "Lader {cid} er ledig men starter ikke.",
+        "pl": "Ładowarka {cid} jest wolna, ale nie startuje.",
+        "cs": "Nabíječka {cid} je volná, ale nespustí se.",
+        "hu": "A(z) {cid} töltő szabad, de nem indul.",
+        "ro": "Stația {cid} e liberă dar nu pornește.",
+    },
+    "stops": {
+        "en": "Charging at {cid} stops after a minute.",
+        "de": "Laden an {cid} bricht nach einer Minute ab.",
+        "it": "La ricarica a {cid} si ferma dopo un minuto.",
+        "nl": "Laden bij {cid} stopt na een minuut.",
+        "sv": "Laddningen vid {cid} avbryts efter en minut.",
+        "da": "Opladningen ved {cid} stopper efter et minut.",
+        "pl": "Ładowanie przy {cid} przerywa się po minucie.",
+        "cs": "Nabíjení u {cid} se po minutě přeruší.",
+        "hu": "A töltés itt: {cid} egy perc után leáll.",
+        "ro": "Încărcarea la {cid} se oprește după un minut.",
+    },
+    "offline": {
+        "en": "Charger {cid} is dead, screen black.",
+        "de": "Säule {cid} ist tot, Display schwarz.",
+        "it": "La colonnina {cid} è spenta.",
+        "nl": "Laadpaal {cid} is dood, scherm zwart.",
+        "sv": "Laddare {cid} är död, skärmen svart.",
+        "da": "Lader {cid} er død, skærmen sort.",
+        "pl": "Ładowarka {cid} nie działa, ekran czarny.",
+        "cs": "Nabíječka {cid} je mrtvá, displej černý.",
+        "hu": "A(z) {cid} töltő halott, a kijelző fekete.",
+        "ro": "Stația {cid} nu merge, ecranul e negru.",
+    },
 }
-NAMES = ["Anna Weber", "Luca Rossi", "Jan de Vries", "Erik Lund", "Mette Jensen", "Piotr Nowak", "Tomáš Novák",
-         "Gábor Kiss", "Andrei Popescu", "Sarah Collins", "Felix Bauer", "Giulia Bianchi"]
+NAMES = [
+    "Anna Weber",
+    "Luca Rossi",
+    "Jan de Vries",
+    "Erik Lund",
+    "Mette Jensen",
+    "Piotr Nowak",
+    "Tomáš Novák",
+    "Gábor Kiss",
+    "Andrei Popescu",
+    "Sarah Collins",
+    "Felix Bauer",
+    "Giulia Bianchi",
+]
 
 # what the vendors' firmware writes into techInfo
 VENDOR_INFO: dict[str, list[str]] = {
     "connector_lock": ["lock motor timeout on connector {evse}", "CP lock feedback mismatch evse={evse}"],
     "power_module": ["PM2 temp high, derating active", "power stage over-temperature, output limited"],
-    "isolation_fault": ["IMD trip: insulation resistance below limit", "isolation monitor fault, output disabled"],
+    "isolation_fault": [
+        "IMD trip: insulation resistance below limit",
+        "isolation monitor fault, output disabled",
+    ],
     "payment_terminal": ["payment terminal: acquirer link down", "PT heartbeat lost"],
     "controller_hang": ["main loop watchdog warning", "WDT pre-timeout"],
 }
@@ -187,17 +237,32 @@ INJECTIONS = [
 ]
 
 LOG_LINES: dict[str, list[str]] = {
-    "controller_hang": ["[WDT] pre-timeout x{n}, main loop stalled in session_mgr", "ctrl: task session_mgr not scheduled for {n}s"],
-    "rfid_reader": ["[RFID] no response from reader on SPI1 (retry {n})", "rfid: reader init failed, err=-110"],
-    "payment_terminal": ["[PT] TLS handshake to acquirer failed (code {n})", "pt: terminal offline since boot"],
+    "controller_hang": [
+        "[WDT] pre-timeout x{n}, main loop stalled in session_mgr",
+        "ctrl: task session_mgr not scheduled for {n}s",
+    ],
+    "rfid_reader": [
+        "[RFID] no response from reader on SPI1 (retry {n})",
+        "rfid: reader init failed, err=-110",
+    ],
+    "payment_terminal": [
+        "[PT] TLS handshake to acquirer failed (code {n})",
+        "pt: terminal offline since boot",
+    ],
     "power_module": ["[PM2] heatsink {n}C, derating to 55%", "pm: fan tach low, temp rising"],
     "cable_wear": ["[HLC] SessionSetupRes timeout, CP duty unstable", "slac: matching failed {n} times"],
     "connector_lock": ["[LOCK] feedback timeout evse {n}", "lock: motor current high"],
     "isolation_fault": ["[IMD] Riso below threshold", "imd: trip latched"],
     "comm_loss": ["[NET] LTE attach failed, rssi -{n}", "modem: no carrier"],
 }
-NOISE_LINES = ["[SYS] boot complete", "[OCPP] ws connected", "[METER] ok", "[HLC] session ended normally",
-               "[SYS] fan check ok", "[OCPP] heartbeat ok"]
+NOISE_LINES = [
+    "[SYS] boot complete",
+    "[OCPP] ws connected",
+    "[METER] ok",
+    "[HLC] session ended normally",
+    "[SYS] fan check ok",
+    "[OCPP] heartbeat ok",
+]
 
 
 def note(cause: str, lang: str, evse: int, part_needed: str | None) -> str:
@@ -212,7 +277,11 @@ def complaint(kind: str, lang: str, cid: str, u: float) -> str:
     if u < 0.4:  # people leave their details
         name = NAMES[int(u * 1000) % len(NAMES)]
         phone = f"+49 17{int(u * 1e7) % 10} {int(u * 1e9) % 10_000_000:07d}"
-        text += f" {name}, {phone}" if u < 0.2 else f" {name.split()[0].lower()}.{name.split()[1].lower()}@example.com"
+        text += (
+            f" {name}, {phone}"
+            if u < 0.2
+            else f" {name.split()[0].lower()}.{name.split()[1].lower()}@example.com"
+        )
     return text
 
 

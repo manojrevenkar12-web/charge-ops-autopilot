@@ -31,9 +31,9 @@ def train() -> None:
 
 
 @app.command()
-def runs(only: list[str] = typer.Option(None, "--only"), workers: int = 2) -> None:  # noqa: B008
+def runs(only: list[str] = typer.Option(None, "--only"), workers: int = 0) -> None:  # noqa: B008
     """Run the policies over the test weeks."""
-    pipeline.runs(only or None, workers=workers)
+    pipeline.runs(only or None, workers=workers or None)
 
 
 @app.command()
@@ -56,6 +56,46 @@ def apim(out: str = "azure/apim/policies") -> None:
 
     for f in A.export(out):
         typer.echo(f)
+
+
+@app.command("export-web")
+def export_web() -> None:
+    """Write the operations room's data (web/public/data)."""
+    from .export import export
+
+    typer.echo(", ".join(export()))
+
+
+@app.command("serve-api")
+def serve_api(host: str = "0.0.0.0", port: int = 8000) -> None:
+    """The model and gateway API (cpa.service.app)."""
+    import uvicorn
+
+    from .mlops.registry import Registry
+    from .service.app import create_app
+
+    uvicorn.run(create_app(Registry()), host=host, port=port)
+
+
+@app.command("serve-csms")
+def serve_csms(host: str = "0.0.0.0", port: int = 9000) -> None:
+    """The OCPP 2.0.1 central system (PostgreSQL record when CPA_DATABASE_URL is set)."""
+    import asyncio
+    import os
+    import time
+
+    from .csms.server import CSMS, Clock
+    from .csms.store import MemoryStore, PostgresStore
+
+    async def main() -> None:
+        url = os.environ.get("CPA_DATABASE_URL")
+        store = await PostgresStore(url).open() if url else MemoryStore()
+        csms = CSMS(Clock(int(time.time())), store)
+        p = await csms.serve(host, port)
+        typer.echo(f"CSMS on ws://{host}:{p}/<station id> (ocpp2.0.1)")
+        await asyncio.Future()
+
+    asyncio.run(main())
 
 
 @app.command()

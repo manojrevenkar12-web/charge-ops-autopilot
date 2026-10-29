@@ -56,13 +56,23 @@ class PostgresStore:
                 await cur.execute(
                     "insert into ocpp_message (ts, received, charger_id, direction, action, message_id, payload, flat)"
                     " values (%s, %s, %s, %s, %s, %s, %s, %s)",
-                    (r["ts"], r["received"], r["charger_id"], r["direction"], r["action"], r["message_id"],
-                     json.dumps(payload), json.dumps(r)))
+                    (
+                        r["ts"],
+                        r["received"],
+                        r["charger_id"],
+                        r["direction"],
+                        r["action"],
+                        r["message_id"],
+                        json.dumps(payload),
+                        json.dumps(r),
+                    ),
+                )
 
     async def between(self, lo: int, hi: int) -> pl.DataFrame:
         async with self.conn.cursor() as cur:
-            await cur.execute("select flat from ocpp_message where received >= %s and received < %s order by id",
-                              (lo, hi))
+            await cur.execute(
+                "select flat from ocpp_message where received >= %s and received < %s order by id", (lo, hi)
+            )
             rows = [r[0] for r in await cur.fetchall()]
         return pl.DataFrame(rows, schema=ocpp_flat.SCHEMA) if rows else ocpp_flat.empty()
 
@@ -70,8 +80,19 @@ class PostgresStore:
         await self.conn.execute(
             "insert into command (ts, charger_id, action, evse, params, decided_by, incident, reason, shield, result)"
             " values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-            (rec["ts"], rec["charger_id"], rec["action"], rec["evse"], json.dumps(rec["params"]), rec["decided_by"],
-             rec["incident"], rec["reason"], json.dumps(rec["shield"]), rec["result"]))
+            (
+                rec["ts"],
+                rec["charger_id"],
+                rec["action"],
+                rec["evse"],
+                json.dumps(rec["params"]),
+                rec["decided_by"],
+                rec["incident"],
+                rec["reason"],
+                json.dumps(rec["shield"]),
+                rec["result"],
+            ),
+        )
 
     async def close(self) -> None:
         await self.conn.close()

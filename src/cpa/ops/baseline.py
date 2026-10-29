@@ -71,8 +71,13 @@ def km(a: tuple[float, float], b: tuple[float, float]) -> float:
     return 6371 * 2 * math.asin(math.sqrt(h))
 
 
-def fifo_routes(view: FleetView, queue: list[Ticket], techs: pl.DataFrame, per_tech: int,
-                parts: dict[str, list[str]] | None = None) -> dict[str, list[Stop]]:
+def fifo_routes(
+    view: FleetView,
+    queue: list[Ticket],
+    techs: pl.DataFrame,
+    per_tech: int,
+    parts: dict[str, list[str]] | None = None,
+) -> dict[str, list[Stop]]:
     """Oldest tickets first, each to the nearest technician of the charger's country who has room."""
     by_country: dict[str, list[str]] = defaultdict(list)
     base: dict[str, tuple[float, float]] = {}
@@ -125,8 +130,11 @@ class BaselinePolicy:
         for cid, cv in v.chargers.items():
             if cid in self.tickets.open:
                 continue
-            faulted = [e for e, (s, ts) in cv.status.items()
-                       if s == "Faulted" and now - ts >= self.cfg["faulted_ticket_after_hours"] * HOUR]
+            faulted = [
+                e
+                for e, (s, ts) in cv.status.items()
+                if s == "Faulted" and now - ts >= self.cfg["faulted_ticket_after_hours"] * HOUR
+            ]
             if faulted:
                 self._open(cid, now, "faulted")
             elif now - cv.last_seen >= self.cfg["offline_ticket_after_hours"] * HOUR:
@@ -172,8 +180,16 @@ class BaselinePolicy:
         t.actions.append("station_reset")
         t.state = "recheck"
         t.due = now + self.cfg["recheck_after_hours"] * HOUR
-        return [Command(cid, "station_reset", params={"type": "OnIdle"}, reason=f"NOC first response to {t.reason}",
-                        incident=t.id, decided_by="operator")]
+        return [
+            Command(
+                cid,
+                "station_reset",
+                params={"type": "OnIdle"},
+                reason=f"NOC first response to {t.reason}",
+                incident=t.id,
+                decided_by="operator",
+            )
+        ]
 
     def _looks_fine(self, cid: str, since: int) -> bool:
         if not self.view.online(cid) or self.view.faulted(cid):
@@ -206,29 +222,61 @@ class BaselinePolicy:
         for (model, version), due in list(self.escalations.items()):
             if now >= due and (model, version) not in self.rolled_back and self.staffed(now):
                 self.rolled_back.add((model, version))
-                cmds.append(Command("*", "halt_rollout", params={"model": model, "version": version},
-                                    reason="vendor advised", decided_by="operator"))
+                cmds.append(
+                    Command(
+                        "*",
+                        "halt_rollout",
+                        params={"model": model, "version": version},
+                        reason="vendor advised",
+                        decided_by="operator",
+                    )
+                )
                 for cid, cv in self.view.chargers.items():
                     if cv.model == model and cv.firmware == version:
                         prev = self._previous(model, version)
                         if prev:
-                            cmds.append(Command(cid, "firmware", params={"version": prev},
-                                                reason="vendor advised rollback", decided_by="operator"))
+                            cmds.append(
+                                Command(
+                                    cid,
+                                    "firmware",
+                                    params={"version": prev},
+                                    reason="vendor advised rollback",
+                                    decided_by="operator",
+                                )
+                            )
 
     def _previous(self, model: str, version: str) -> str | None:
         seen = sorted({cv.firmware for cv in self.view.chargers.values() if cv.model == model} - {version})
         return seen[-1] if seen else None
 
     def plan_day(self, day_start: int) -> dict[str, list[Stop]]:
-        queue = [t for t in self.tickets.open.values()
-                 if t.state == "dispatch" or (t.state == "part" and (t.part_eta or 0) <= day_start + 8 * HOUR)]
+        queue = [
+            t
+            for t in self.tickets.open.values()
+            if t.state == "dispatch" or (t.state == "part" and (t.part_eta or 0) <= day_start + 8 * HOUR)
+        ]
         return fifo_routes(self.view, queue, self.techs, self.cfg["stops_per_technician"])
 
     def artifacts(self) -> dict[str, list[dict[str, Any]]]:
-        return {"incidents": [{"id": t.id, "charger_id": t.charger_id, "opened": t.opened, "closed": t.closed,
-                               "state": t.state, "resolution": t.reason, "actions": t.actions, "visits": t.visits}
-                              for t in self.tickets.all()]}
+        return {
+            "incidents": [
+                {
+                    "id": t.id,
+                    "charger_id": t.charger_id,
+                    "opened": t.opened,
+                    "closed": t.closed,
+                    "state": t.state,
+                    "resolution": t.reason,
+                    "actions": t.actions,
+                    "visits": t.visits,
+                }
+                for t in self.tickets.all()
+            ]
+        }
 
     def report(self) -> dict[str, Any]:
-        return {"tickets": len(self.tickets.all()), "open": len(self.tickets.open),
-                "escalations": {f"{m} {v}": d for (m, v), d in self.escalations.items()}}
+        return {
+            "tickets": len(self.tickets.all()),
+            "open": len(self.tickets.open),
+            "escalations": {f"{m} {v}": d for (m, v), d in self.escalations.items()},
+        }

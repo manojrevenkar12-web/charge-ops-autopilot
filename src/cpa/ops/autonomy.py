@@ -24,7 +24,7 @@ def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
     d = 1 + z * z / n
     c = (p + z * z / (2 * n)) / d
     h = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
-    return max(0.0, c - h), min(1.0, c + h)
+    return max(0.0, min(c - h, p)), min(1.0, max(c + h, p))  # clamp rounding at k = 0 and k = n
 
 
 @dataclass
@@ -48,14 +48,17 @@ class Ladder:
         r = self.rungs[(action, model)]
         r.outcomes.append(success)
         n, k = len(r.outcomes), sum(r.outcomes)
-        if r.level == "propose" and n >= self.cfg["promote"]["min_outcomes"] and action not in self.cfg[
-                "never_autonomous"]:
+        if (
+            r.level == "propose"
+            and n >= self.cfg["promote"]["min_outcomes"]
+            and action not in self.cfg["never_autonomous"]
+        ):
             lo, _ = wilson(k, n)
             if lo >= self.cfg["promote"]["wilson_lower"]:
                 r.level = "act"
                 r.changes.append((now, "act"))
         elif r.level == "act":
-            recent = list(r.outcomes)[-self.cfg["demote"]["window"]:]
+            recent = list(r.outcomes)[-self.cfg["demote"]["window"] :]
             _, hi = wilson(sum(recent), len(recent))
             if len(recent) >= self.cfg["demote"]["window"] and hi < self.cfg["demote"]["wilson_upper"]:
                 r.level = "propose"
@@ -66,7 +69,16 @@ class Ladder:
         for (a, m), r in sorted(self.rungs.items()):
             n, k = len(r.outcomes), sum(r.outcomes)
             lo, hi = wilson(k, n)
-            out.append({"action": a, "model": m, "level": r.level, "outcomes": n, "successes": k,
-                        "wilson_lower": round(lo, 3), "wilson_upper": round(hi, 3),
-                        "changes": [{"ts": t, "to": lv} for t, lv in r.changes]})
+            out.append(
+                {
+                    "action": a,
+                    "model": m,
+                    "level": r.level,
+                    "outcomes": n,
+                    "successes": k,
+                    "wilson_lower": round(lo, 3),
+                    "wilson_upper": round(hi, 3),
+                    "changes": [{"ts": t, "to": lv} for t, lv in r.changes],
+                }
+            )
         return out

@@ -24,11 +24,15 @@ class ChargerView:
     country: str
     site_id: str
     firmware: str
-    status: dict[int, tuple[str, int]] = field(default_factory=lambda: {1: ("Available", 0), 2: ("Available", 0)})
+    status: dict[int, tuple[str, int]] = field(
+        default_factory=lambda: {1: ("Available", 0), 2: ("Available", 0)}
+    )
     open_tx: dict[str, tuple[int, int]] = field(default_factory=dict)  # tx -> (evse, start)
     last_seen: int = 0
     last_boot: int = 0
-    codes: deque[tuple[int, str, str, int]] = field(default_factory=lambda: deque(maxlen=20))  # ts, code, info, evse
+    codes: deque[tuple[int, str, str, int]] = field(
+        default_factory=lambda: deque(maxlen=20)
+    )  # ts, code, info, evse
     failed_starts: deque[int] = field(default_factory=lambda: deque(maxlen=50))
     evcomm_fails: deque[tuple[int, int]] = field(default_factory=lambda: deque(maxlen=50))  # ts, evse
     good_sessions: deque[int] = field(default_factory=lambda: deque(maxlen=50))
@@ -44,14 +48,19 @@ class FleetView:
     def __init__(self, reference: dict[str, pl.DataFrame]) -> None:
         ch = reference["chargers"]
         self.chargers: dict[str, ChargerView] = {
-            r["charger_id"]: ChargerView(r["charger_id"], r["model"], r["kind"], r["country"], r["site_id"],
-                                         r["firmware"]) for r in ch.iter_rows(named=True)}
+            r["charger_id"]: ChargerView(
+                r["charger_id"], r["model"], r["kind"], r["country"], r["site_id"], r["firmware"]
+            )
+            for r in ch.iter_rows(named=True)
+        }
         self.sites = {r["site_id"]: r for r in reference["sites"].iter_rows(named=True)}
         self.site_chargers: dict[str, list[str]] = defaultdict(list)
         for c in self.chargers.values():
             self.site_chargers[c.site_id].append(c.charger_id)
         self.now = 0
-        self._pending: dict[str, list[tuple[int, int]]] = defaultdict(list)  # auth/remote starts awaiting a start
+        self._pending: dict[str, list[tuple[int, int]]] = defaultdict(
+            list
+        )  # auth/remote starts awaiting a start
 
     def update(self, msgs: pl.DataFrame, now: int) -> None:
         self.now = now
@@ -84,7 +93,9 @@ class FleetView:
                 elif r["event_type"] == "Ended":
                     v.open_tx.pop(r["tx_id"], None)
                     e = r["energy_wh"] or 0.0
-                    if r["trigger_reason"] == "EVCommunicationLost" or (r["stopped_reason"] == "Other" and e < 100):
+                    if r["trigger_reason"] == "EVCommunicationLost" or (
+                        r["stopped_reason"] == "Other" and e < 100
+                    ):
                         v.evcomm_fails.append((r["ts"], r["evse"]))
                     elif r["stopped_reason"] in ("EVDisconnected", "Local", "Remote"):
                         v.good_sessions.append(r["ts"])

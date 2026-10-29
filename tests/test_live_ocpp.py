@@ -62,6 +62,12 @@ def test_autopilot_over_real_ocpp():
 def test_csms_records_wire_payloads():
     st, loop, pilot, ok_after, csms = asyncio.run(scenario())
     actions = {r["action"] for r in csms.store.rows}
-    assert {"BootNotification", "Heartbeat", "StatusNotification", "Authorize", "TransactionEvent",
-            "NotifyEvent"} <= actions
+    assert {
+        "BootNotification",
+        "Heartbeat",
+        "StatusNotification",
+        "Authorize",
+        "TransactionEvent",
+        "NotifyEvent",
+    } <= actions
     assert any(p.get("eventData") for p in csms.store.payloads)  # payloads kept exactly as received

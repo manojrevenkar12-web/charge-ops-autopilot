@@ -14,21 +14,50 @@ from .server import CSMS, Clock
 HOUR = 3600
 EMPTY = {
     "complaints": {"ts": pl.Int64, "charger_id": pl.Utf8, "lang": pl.Utf8, "text": pl.Utf8},
-    "visits": {"visit_id": pl.Utf8, "tech_id": pl.Utf8, "charger_id": pl.Utf8, "ts": pl.Int64, "outcome": pl.Utf8,
-               "part_used": pl.Utf8, "part_needed": pl.Utf8, "part_eta": pl.Int64, "lang": pl.Utf8, "note": pl.Utf8,
-               "cost_eur": pl.Float64, "incident": pl.Utf8},
+    "visits": {
+        "visit_id": pl.Utf8,
+        "tech_id": pl.Utf8,
+        "charger_id": pl.Utf8,
+        "ts": pl.Int64,
+        "outcome": pl.Utf8,
+        "part_used": pl.Utf8,
+        "part_needed": pl.Utf8,
+        "part_eta": pl.Int64,
+        "lang": pl.Utf8,
+        "note": pl.Utf8,
+        "cost_eur": pl.Float64,
+        "incident": pl.Utf8,
+    },
     "logs": {"ts": pl.Int64, "charger_id": pl.Utf8, "text": pl.Utf8},
 }
 
 
 def reference(stations: list[dict[str, Any]]) -> dict[str, pl.DataFrame]:
-    chargers = pl.DataFrame([{"charger_id": s["id"], "site_id": s.get("site", "S-live"), "country": "DE",
-                              "model": s.get("model", "DC-150"), "vendor": "Nordvolt", "kind": "DC", "kw": 150,
-                              "connectors": 2, "firmware": s.get("firmware", "2.12.1")} for s in stations])
-    sites = pl.DataFrame([{"site_id": sid, "country": "DE", "lat": 52.52, "lon": 13.40, "utc_offset": 1,
-                           "motorway": False} for sid in chargers["site_id"].unique().to_list()])
-    techs = pl.DataFrame([{"tech_id": "T-DE-1", "country": "DE", "lat": 52.52, "lon": 13.40, "utc_offset": 1,
-                           "lang": "de"}])
+    chargers = pl.DataFrame(
+        [
+            {
+                "charger_id": s["id"],
+                "site_id": s.get("site", "S-live"),
+                "country": "DE",
+                "model": s.get("model", "DC-150"),
+                "vendor": "Nordvolt",
+                "kind": "DC",
+                "kw": 150,
+                "connectors": 2,
+                "firmware": s.get("firmware", "2.12.1"),
+            }
+            for s in stations
+        ]
+    )
+    sites = pl.DataFrame(
+        [
+            {"site_id": sid, "country": "DE", "lat": 52.52, "lon": 13.40, "utc_offset": 1, "motorway": False}
+            for sid in chargers["site_id"].unique().to_list()
+        ]
+    )
+    techs = pl.DataFrame(
+        [{"tech_id": "T-DE-1", "country": "DE", "lat": 52.52, "lon": 13.40, "utc_offset": 1, "lang": "de"}]
+    )
     return {"chargers": chargers, "sites": sites, "technicians": techs}
 
 
@@ -45,7 +74,10 @@ class LiveLoop:
         msgs = await self.csms.store.between(lo, hi)
         obs = Observation(now=hi, messages=msgs, **{k: pl.DataFrame(schema=v) for k, v in EMPTY.items()})
         for cmd in self.policy.on_hour(obs):
-            verdict = (self.policy.shield.log[-1] if getattr(self.policy, "shield", None) and self.policy.shield.log
-                       else {})
+            verdict = (
+                self.policy.shield.log[-1]
+                if getattr(self.policy, "shield", None) and self.policy.shield.log
+                else {}
+            )
             result = await self.csms.send(cmd, verdict)
             self.sent.append((cmd.charger_id, cmd.action, result))

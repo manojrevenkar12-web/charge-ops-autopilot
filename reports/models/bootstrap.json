@@ -1,16 +1,16 @@
 {
  "incidents": 4109,
  "labels": {
-  "self_resolved": 2042,
-  "firmware": 22,
-  "part:cable": 171,
-  "part:rfid_reader": 44,
   "part:modem": 127,
   "reset": 1087,
+  "firmware": 22,
+  "part:rfid_reader": 44,
   "part:lock_actuator": 345,
   "part:payment_terminal": 9,
-  "part:power_module": 219,
-  "onsite_restart": 43
+  "onsite_restart": 43,
+  "self_resolved": 2042,
+  "part:cable": 171,
+  "part:power_module": 219
  },
  "diagnosis": {
   "version": "1",
@@ -32,10 +32,10 @@
    "p99_abs_diff": 5.192696720640599e-07,
    "argmax_agreement": 1.0,
    "rows": 2000,
-   "p50_ms_onnx": 9.313022497735801,
-   "p95_ms_onnx": 12.511514901052578,
-   "p50_ms_native": 34.29138750107086,
-   "p95_ms_native": 40.85908250108332,
+   "p50_ms_onnx": 9.21631500023068,
+   "p95_ms_onnx": 11.656182150363747,
+   "p50_ms_native": 35.17086500141886,
+   "p95_ms_native": 40.773163302037574,
    "batch": 64
   },
   "card": {
@@ -45,16 +45,16 @@
     "from_hour": 492341,
     "to_hour": 493981,
     "labels": {
-     "part:lock_actuator": 737,
-     "self_resolved": 3813,
-     "part:cable": 397,
-     "part:power_module": 446,
-     "part:modem": 300,
      "part:rfid_reader": 85,
+     "part:payment_terminal": 17,
+     "self_resolved": 3813,
      "onsite_restart": 90,
      "firmware": 65,
+     "part:power_module": 446,
+     "part:lock_actuator": 737,
+     "part:cable": 397,
      "reset": 2301,
-     "part:payment_terminal": 17
+     "part:modem": 300
     }
    },
    "validated_on": {
@@ -78,10 +78,10 @@
    "p99_abs_diff": 1.2187771663889345e-07,
    "argmax_agreement": 1.0,
    "rows": 2000,
-   "p50_ms_onnx": 0.7699899997533066,
-   "p95_ms_onnx": 0.9037927024110104,
-   "p50_ms_native": 1.260784998521558,
-   "p95_ms_native": 1.5427731992531333,
+   "p50_ms_onnx": 0.6495720008388162,
+   "p95_ms_onnx": 0.8326344490342307,
+   "p50_ms_native": 1.0813355002028402,
+   "p95_ms_native": 1.3985420016979326,
    "batch": 64
   },
   "card": {

@@ -8,6 +8,7 @@ policies are then differences in what they did, not in luck."""
 from __future__ import annotations
 
 import math
+import os
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from functools import cache
@@ -42,7 +43,7 @@ CITIES: dict[str, list[tuple[float, float]]] = {
 
 @cache
 def truth_config(path: str | None = None) -> dict[str, Any]:
-    p = path or str(CONFIG / "fleet.yaml")
+    p = path or os.environ.get("CPA_FLEET") or str(CONFIG / "fleet.yaml")  # held-out fleets set CPA_FLEET
     return yaml.safe_load(open(p).read())
 
 
@@ -134,10 +135,18 @@ def build(cfg: dict[str, Any] | None = None) -> World:
         sid = len(site_rows)
         k = int(rng.integers(lo, hi + 1))
         hpc_site = far and rng.random() < 0.6
-        site_rows.append({"site_id": f"S{sid:04d}", "site": sid, "country": c, "lat": round(float(lat), 5),
-                          "lon": round(float(lon), 5), "utc_offset": fleet["countries"][c]["utc"],
-                          "demand": float(np.exp(rng.normal(0, cfg["drivers"]["site_demand_sd"]))),
-                          "motorway": far})
+        site_rows.append(
+            {
+                "site_id": f"S{sid:04d}",
+                "site": sid,
+                "country": c,
+                "lat": round(float(lat), 5),
+                "lon": round(float(lon), 5),
+                "utc_offset": fleet["countries"][c]["utc"],
+                "demand": float(np.exp(rng.normal(0, cfg["drivers"]["site_demand_sd"]))),
+                "motorway": far,
+            }
+        )
         for _ in range(k):
             if len(charger_rows) >= n:
                 break
@@ -147,10 +156,21 @@ def build(cfg: dict[str, Any] | None = None) -> World:
             m = model_names[rng.choice(len(model_names), p=p / p.sum())]
             spec = cfg["models"][m]
             idx = len(charger_rows)
-            charger_rows.append({"charger_id": f"{c}-{idx:04d}", "charger": idx, "site_id": f"S{sid:04d}",
-                                 "site": sid, "country": c, "model": m, "vendor": spec["vendor"],
-                                 "kind": spec["kind"], "kw": spec["kw"], "connectors": spec["connectors"],
-                                 "firmware": spec["firmware"][0]})
+            charger_rows.append(
+                {
+                    "charger_id": f"{c}-{idx:04d}",
+                    "charger": idx,
+                    "site_id": f"S{sid:04d}",
+                    "site": sid,
+                    "country": c,
+                    "model": m,
+                    "vendor": spec["vendor"],
+                    "kind": spec["kind"],
+                    "kw": spec["kw"],
+                    "connectors": spec["connectors"],
+                    "firmware": spec["firmware"][0],
+                }
+            )
     sites = pl.DataFrame(site_rows)
     chargers = pl.DataFrame(charger_rows)
 
@@ -159,8 +179,16 @@ def build(cfg: dict[str, Any] | None = None) -> World:
     for c in countries:
         for j in range(fleet["countries"][c]["technicians"]):
             base = CITIES[c][j % len(CITIES[c])]
-            tech_rows.append({"tech_id": f"T-{c}-{j + 1}", "country": c, "lat": base[0], "lon": base[1],
-                              "utc_offset": fleet["countries"][c]["utc"], "lang": fleet["countries"][c]["lang"]})
+            tech_rows.append(
+                {
+                    "tech_id": f"T-{c}-{j + 1}",
+                    "country": c,
+                    "lat": base[0],
+                    "lon": base[1],
+                    "utc_offset": fleet["countries"][c]["utc"],
+                    "lang": fleet["countries"][c]["lang"],
+                }
+            )
     technicians = pl.DataFrame(tech_rows)
 
     # expected arrivals per charger-hour: model rate x site demand x hour-of-day (local) x weekend
@@ -168,7 +196,9 @@ def build(cfg: dict[str, Any] | None = None) -> World:
     prof = prof / prof.mean()
     site_demand = sites["demand"].to_numpy()[chargers["site"].to_numpy()]
     per_day = np.array([cfg["models"][m]["sessions_per_day"] for m in chargers["model"]])
-    offset = chargers["country"].replace_strict({c: fleet["countries"][c]["utc"] for c in countries}).to_numpy()
+    offset = (
+        chargers["country"].replace_strict({c: fleet["countries"][c]["utc"] for c in countries}).to_numpy()
+    )
     h = np.arange(hours)
     local = (h[:, None] + offset[None, :]) % 24
     dow = ((h[:, None] + offset[None, :]) // 24) % 7  # t0 is a Monday
@@ -190,10 +220,16 @@ def build(cfg: dict[str, Any] | None = None) -> World:
             while t < t0 + hours * HOUR:
                 nat = f.get("natural_end_hours")
                 evse = int(rng.integers(1, 3)) if kind in ("connector_lock", "cable_wear") else 0
-                ep = Episode(id=len(episodes), charger=ci, kind=kind, start=int(t), evse=evse,
-                             natural_end=t + rng.exponential(nat * HOUR) if nat else math.inf,
-                             remedy_u=rng.random(REMEDY_DRAWS),
-                             injection=bool(rng.random() < cfg["untrusted_text"]["injection_share"]))
+                ep = Episode(
+                    id=len(episodes),
+                    charger=ci,
+                    kind=kind,
+                    start=int(t),
+                    evse=evse,
+                    natural_end=t + rng.exponential(nat * HOUR) if nat else math.inf,
+                    remedy_u=rng.random(REMEDY_DRAWS),
+                    injection=bool(rng.random() < cfg["untrusted_text"]["injection_share"]),
+                )
                 if kind == "power_module":
                     a, b = f["onset_days"]
                     ep.onset_end = int(t + rng.uniform(a, b) * DAY)
@@ -220,8 +256,19 @@ def build(cfg: dict[str, Any] | None = None) -> World:
         days_arr[sel] = r["day"] + rng.geometric(r["share_per_day"], sel.sum()) - 1
         rollout_day[(r["model"], r["version"])] = days_arr
 
-    return World(cfg=cfg, t0=t0, hours=hours, sites=sites, chargers=chargers, technicians=technicians, lam=lam,
-                 episodes=episodes, outages=outages, rollout_day=rollout_day, seed=seed)
+    return World(
+        cfg=cfg,
+        t0=t0,
+        hours=hours,
+        sites=sites,
+        chargers=chargers,
+        technicians=technicians,
+        lam=lam,
+        episodes=episodes,
+        outages=outages,
+        rollout_day=rollout_day,
+        seed=seed,
+    )
 
 
 def distance_km(a: tuple[float, float], b: tuple[float, float]) -> float:

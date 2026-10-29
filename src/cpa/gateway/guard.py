@@ -11,8 +11,13 @@ from typing import Any
 from .. import settings
 
 SCHEMAS: dict[str, dict[str, type | tuple[type, ...]]] = {
-    "incident_reading": {"suspected": list, "safety_concern": bool, "confidence": (int, float), "evidence": list,
-                         "first_action": str},
+    "incident_reading": {
+        "suspected": list,
+        "safety_concern": bool,
+        "confidence": (int, float),
+        "evidence": list,
+        "first_action": str,
+    },
     "note_label": {"part": (str, type(None)), "cause": str, "confidence": (int, float)},
     "brief": {"text": str, "lang": str},
 }
@@ -90,7 +95,11 @@ def check_output(schema: str, out: Any, report: GuardReport) -> bool:
         if out.get("first_action") not in allowed:
             report.output_errors.append(f"action {out.get('first_action')!r} not allowed")
         for s in out.get("suspected", []):
-            if not (isinstance(s, dict) and isinstance(s.get("remedy"), str) and isinstance(s.get("p"), int | float)):
+            if not (
+                isinstance(s, dict)
+                and isinstance(s.get("remedy"), str)
+                and isinstance(s.get("p"), int | float)
+            ):
                 report.output_errors.append("bad suspected entry")
                 break
     return not report.output_errors

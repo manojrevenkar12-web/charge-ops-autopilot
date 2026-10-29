@@ -36,8 +36,9 @@ def psi(ref: np.ndarray, cur: np.ndarray, bins: int = 10) -> float:
 
 
 class ModelOps:
-    def __init__(self, registry: Registry, history: dataset.Prepared, chargers: pl.DataFrame, *,
-                 retrain: bool = True) -> None:
+    def __init__(
+        self, registry: Registry, history: dataset.Prepared, chargers: pl.DataFrame, *, retrain: bool = True
+    ) -> None:
         self.reg = registry
         self.history = history
         self.chargers = chargers
@@ -51,7 +52,12 @@ class ModelOps:
         self.history_log: list[dict[str, Any]] = []
         self.drift: list[dict[str, Any]] = []
         self.policy: Any = None
-        self.run_parts: dict[str, list[pl.DataFrame]] = {"hourly": [], "status": [], "actions": [], "visits": []}
+        self.run_parts: dict[str, list[pl.DataFrame]] = {
+            "hourly": [],
+            "status": [],
+            "actions": [],
+            "visits": [],
+        }
         self.last_retrain = 0
         self.decision_rows: list[pl.DataFrame] = []
 
@@ -62,8 +68,14 @@ class ModelOps:
     def attach(self, policy: Any) -> None:
         self.policy = policy
         self._reference()
-        self.history_log.append({"ts": policy.t0, "event": "start", "diagnosis": self.diagnosis.version
-                                 if self.diagnosis else None, "risk": self.risk.version if self.risk else None})
+        self.history_log.append(
+            {
+                "ts": policy.t0,
+                "event": "start",
+                "diagnosis": self.diagnosis.version if self.diagnosis else None,
+                "risk": self.risk.version if self.risk else None,
+            }
+        )
 
     def _reference(self) -> None:
         if self.diagnosis is None:
@@ -87,7 +99,11 @@ class ModelOps:
         if (now // HOUR) % 24 == 3:
             self._drift(now)
             dow = ((now // DAY) + 3) % 7  # 1970-01-01 was a Thursday
-            if self.retrain_enabled and dow == self.cfg["retraining"]["weekday"] and now - self.last_retrain > 3 * DAY:
+            if (
+                self.retrain_enabled
+                and dow == self.cfg["retraining"]["weekday"]
+                and now - self.last_retrain > 3 * DAY
+            ):
                 self._retrain(now)
 
     # ---------------------------------------------------------------- retraining and promotion
@@ -97,13 +113,24 @@ class ModelOps:
         start = int(parts["hourly"]["hour"].min()) if parts["hourly"] is not None else 10**12
         return dataset.Prepared(
             pl.concat([hist.hourly.filter(pl.col("hour") < start), parts["hourly"]], how="diagonal_relaxed")
-            if parts["hourly"] is not None else hist.hourly,
-            pl.concat([hist.status.filter(pl.col("received") < start * HOUR), parts["status"]], how="diagonal_relaxed")
-            if parts["status"] is not None else hist.status,
-            pl.concat([hist.actions.filter(pl.col("ts") < start * HOUR), parts["actions"]], how="diagonal_relaxed")
-            if parts["actions"] is not None else hist.actions,
-            pl.concat([hist.visits.filter(pl.col("ts") < start * HOUR), parts["visits"]], how="diagonal_relaxed")
-            if parts["visits"] is not None else hist.visits,
+            if parts["hourly"] is not None
+            else hist.hourly,
+            pl.concat(
+                [hist.status.filter(pl.col("received") < start * HOUR), parts["status"]],
+                how="diagonal_relaxed",
+            )
+            if parts["status"] is not None
+            else hist.status,
+            pl.concat(
+                [hist.actions.filter(pl.col("ts") < start * HOUR), parts["actions"]], how="diagonal_relaxed"
+            )
+            if parts["actions"] is not None
+            else hist.actions,
+            pl.concat(
+                [hist.visits.filter(pl.col("ts") < start * HOUR), parts["visits"]], how="diagonal_relaxed"
+            )
+            if parts["visits"] is not None
+            else hist.visits,
         )
 
     def _retrain(self, now: int) -> None:
@@ -117,12 +144,16 @@ class ModelOps:
         onx = models.to_onnx(cand)
         checks = models.onnx_check(cand, onx, va.tail(min(2000, va.height)), iterations=40)
         verdict = gate.offline(cand, self.diagnosis, va, checks)
-        rec["diagnosis_gate"] = {"passed": verdict["passed"], "reasons": verdict["reasons"],
-                                 "candidate_macro_f1": verdict["candidate"].get("macro_f1"),
-                                 "champion_macro_f1": verdict["champion"].get("macro_f1")}
+        rec["diagnosis_gate"] = {
+            "passed": verdict["passed"],
+            "reasons": verdict["reasons"],
+            "candidate_macro_f1": verdict["candidate"].get("macro_f1"),
+            "champion_macro_f1": verdict["champion"].get("macro_f1"),
+        }
         if verdict["passed"]:
-            v = self.reg.register(cand, onx, checks, {"trained_at": str(now), "run": self.policy.name,
-                                                      "stage": "challenger"})
+            v = self.reg.register(
+                cand, onx, checks, {"trained_at": str(now), "run": self.policy.name, "stage": "challenger"}
+            )
             self.reg.set_alias("diagnosis", "challenger", v)
             self.challenger = self.reg.load("diagnosis", v)
             self.shadow = []
@@ -132,10 +163,15 @@ class ModelOps:
         ronx = models.to_onnx(rcand)
         rchecks = models.onnx_check(rcand, ronx, rva.tail(min(2000, rva.height)), iterations=40)
         rverdict = gate.offline(rcand, self.risk, rva, rchecks)
-        rec["risk_gate"] = {"passed": rverdict["passed"], "reasons": rverdict["reasons"],
-                            "candidate_pr_auc": rverdict["candidate"].get("pr_auc"),
-                            "champion_pr_auc": rverdict["champion"].get("pr_auc")}
-        if rverdict["passed"]:  # the risk model only ranks preventive visits: it is promoted after the offline gate
+        rec["risk_gate"] = {
+            "passed": rverdict["passed"],
+            "reasons": rverdict["reasons"],
+            "candidate_pr_auc": rverdict["candidate"].get("pr_auc"),
+            "champion_pr_auc": rverdict["champion"].get("pr_auc"),
+        }
+        if rverdict[
+            "passed"
+        ]:  # the risk model only ranks preventive visits: it is promoted after the offline gate
             v = self.reg.register(rcand, ronx, rchecks, {"trained_at": str(now), "run": self.policy.name})
             old = self.reg.alias("risk", "champion")
             if old:
@@ -160,8 +196,14 @@ class ModelOps:
         if len(self.shadow) >= s["min_incidents"]:
             c1 = sum(r["label"] == r["champion"] for r in self.shadow)
             c2 = sum(r["label"] == r["challenger"] for r in self.shadow)
-            rec = {"ts": inc.closed, "event": "shadow_verdict", "n": len(self.shadow), "champion_correct": c1,
-                   "challenger_correct": c2, "version": self.challenger.version}
+            rec = {
+                "ts": inc.closed,
+                "event": "shadow_verdict",
+                "n": len(self.shadow),
+                "champion_correct": c1,
+                "challenger_correct": c2,
+                "version": self.challenger.version,
+            }
             if c2 >= c1:
                 old = self.reg.alias("diagnosis", "champion")
                 if old:
@@ -196,24 +238,36 @@ class ModelOps:
         ref = getattr(self, "_ref_rows", None)
         if self.diagnosis is None or ref is None or not self.decision_rows:
             return
-        cur = pl.concat(self.decision_rows[-24 * self.cfg["drift"]["window_days"]:], how="diagonal_relaxed")
+        cur = pl.concat(self.decision_rows[-24 * self.cfg["drift"]["window_days"] :], how="diagonal_relaxed")
         if cur.height < 30:
             return
-        scores = {c: psi(ref[c].to_numpy().astype(float), cur[c].to_numpy().astype(float))
-                  for c in features.NUMERIC if c in cur.columns and c in ref.columns}
+        scores = {
+            c: psi(ref[c].to_numpy().astype(float), cur[c].to_numpy().astype(float))
+            for c in features.NUMERIC
+            if c in cur.columns and c in ref.columns
+        }
         top = sorted(scores.items(), key=lambda kv: -kv[1])[:5]
         alert = any(v > self.cfg["drift"]["psi_alert"] for _, v in top)
-        self.drift.append({"ts": now, "rows": cur.height, "top": [{"feature": k, "psi": round(v, 3)} for k, v in top],
-                           "alert": alert})
+        self.drift.append(
+            {
+                "ts": now,
+                "rows": cur.height,
+                "top": [{"feature": k, "psi": round(v, 3)} for k, v in top],
+                "alert": alert,
+            }
+        )
 
     def set_reference_rows(self, rows: pl.DataFrame) -> None:
         self._ref_rows = rows
 
     def report(self) -> dict[str, Any]:
-        return {"events": self.history_log, "drift": self.drift[-60:],
-                "drift_alerts": sum(1 for d in self.drift if d["alert"]),
-                "champion": {"diagnosis": self.diagnosis.version if self.diagnosis else None,
-                             "risk": self.risk.version if self.risk else None},
-                "shadow_pending": len(self.shadow)}
-
-
+        return {
+            "events": self.history_log,
+            "drift": self.drift[-60:],
+            "drift_alerts": sum(1 for d in self.drift if d["alert"]),
+            "champion": {
+                "diagnosis": self.diagnosis.version if self.diagnosis else None,
+                "risk": self.risk.version if self.risk else None,
+            },
+            "shadow_pending": len(self.shadow),
+        }

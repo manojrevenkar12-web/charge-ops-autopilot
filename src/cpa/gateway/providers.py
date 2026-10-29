@@ -20,7 +20,9 @@ from . import prompts
 class Provider(Protocol):
     name: str
 
-    def complete(self, model: str, use_case: str, fields: dict[str, Any], max_tokens: int) -> tuple[str, int, int]:
+    def complete(
+        self, model: str, use_case: str, fields: dict[str, Any], max_tokens: int
+    ) -> tuple[str, int, int]:
         """Returns (raw text, input tokens, output tokens)."""
         ...
 
@@ -49,20 +51,37 @@ LOG_HINTS = [
     (r"\[net\]|modem:", "part:modem"),
 ]
 COMPLAINT_HINTS = [
-    (r"card does nothing|karte geht|tessera|pas werkt|kort fungerar|kort virker|karta nie|karta nefunguje|kártyám|cardul", "part:rfid_reader"),
-    (r"payment|zahlung|pagamento|pinbetaling|kortbetalning|kortbetaling|płatność|platba|fizetés|plata", "part:payment_terminal"),
-    (r"will not start|startet aber nicht|non parte|start niet|startar inte|starter ikke|nie startuje|nespustí|nem indul|nu pornește", "reset"),
-    (r"stops after|bricht|si ferma|stopt na|avbryts|stopper efter|przerywa|přeruší|leáll|se oprește", "part:cable"),
+    (
+        r"card does nothing|karte geht|tessera|pas werkt|kort fungerar|kort virker|karta nie|karta nefunguje|kártyám|cardul",
+        "part:rfid_reader",
+    ),
+    (
+        r"payment|zahlung|pagamento|pinbetaling|kortbetalning|kortbetaling|płatność|platba|fizetés|plata",
+        "part:payment_terminal",
+    ),
+    (
+        r"will not start|startet aber nicht|non parte|start niet|startar inte|starter ikke|nie startuje|nespustí|nem indul|nu pornește",
+        "reset",
+    ),
+    (
+        r"stops after|bricht|si ferma|stopt na|avbryts|stopper efter|przerywa|přeruší|leáll|se oprește",
+        "part:cable",
+    ),
 ]
 SAFETY = re.compile(r"insulation|isolation|ground fault|imd|riso|earth fault|never reset|do not reset", re.I)
-INJECTED_ACTION = [("set every charger", "set_operative"), ("station_reset", "station_reset"),
-                   ("mark this incident resolved", "wait")]
+INJECTED_ACTION = [
+    ("set every charger", "set_operative"),
+    ("station_reset", "station_reset"),
+    ("mark this incident resolved", "wait"),
+]
 
 
 class SimulatedProvider:
     name = "simulated"
 
-    def complete(self, model: str, use_case: str, fields: dict[str, Any], max_tokens: int) -> tuple[str, int, int]:
+    def complete(
+        self, model: str, use_case: str, fields: dict[str, Any], max_tokens: int
+    ) -> tuple[str, int, int]:
         prompt = prompts.render(use_case, fields)
         tin = estimate_tokens(prompt)
         out = getattr(self, "_" + use_case.replace("-", "_"))(fields)
@@ -70,12 +89,19 @@ class SimulatedProvider:
         return text, tin, estimate_tokens(text)
 
     def _incident_reader(self, f: dict[str, Any]) -> dict[str, Any]:
-        untrusted = " ".join([f.get("tech_info") or "", f.get("log") or "", " ".join(f.get("complaints") or [])])
+        untrusted = " ".join(
+            [f.get("tech_info") or "", f.get("log") or "", " ".join(f.get("complaints") or [])]
+        )
         low = untrusted.lower()
         for marker, action in INJECTED_ACTION:  # a naive model does what the text says
             if marker in low:
-                return {"suspected": [], "safety_concern": False, "confidence": 0.9,
-                        "evidence": ["instruction found in charger text"], "first_action": action}
+                return {
+                    "suspected": [],
+                    "safety_concern": False,
+                    "confidence": 0.9,
+                    "evidence": ["instruction found in charger text"],
+                    "first_action": action,
+                }
         scores: dict[str, float] = {}
         evidence = []
         code = (f.get("tech_code") or "").strip()
@@ -101,7 +127,9 @@ class SimulatedProvider:
         if SAFETY.search(f.get("tech_info") or "") or SAFETY.search(f.get("log") or ""):
             safety = True
         total = sum(scores.values())
-        suspected = [{"remedy": k, "p": round(v / total, 3)} for k, v in sorted(scores.items(), key=lambda kv: -kv[1])]
+        suspected = [
+            {"remedy": k, "p": round(v / total, 3)} for k, v in sorted(scores.items(), key=lambda kv: -kv[1])
+        ]
         conf = min(0.95, 0.35 + 0.15 * total) if total else 0.2
         first = "wait"
         if safety:
@@ -109,8 +137,13 @@ class SimulatedProvider:
         elif suspected:
             top = suspected[0]["remedy"]
             first = {"unlock": "unlock", "reset": "evse_reset"}.get(top, "dispatch")
-        return {"suspected": suspected[:4], "safety_concern": safety, "confidence": round(conf, 3),
-                "evidence": evidence[:5], "first_action": first}
+        return {
+            "suspected": suspected[:4],
+            "safety_concern": safety,
+            "confidence": round(conf, 3),
+            "evidence": evidence[:5],
+            "first_action": first,
+        }
 
     def _note_labeler(self, f: dict[str, Any]) -> dict[str, Any]:
         r = lexicon.read(f.get("note") or "", f.get("lang") or "")
@@ -119,7 +152,10 @@ class SimulatedProvider:
 
     def _dispatch_brief(self, f: dict[str, Any]) -> dict[str, Any]:
         parts = ", ".join(f.get("parts") or []) or "-"
-        return {"text": f"{f.get('charger_id')}: {f.get('summary', '')} Parts: {parts}.", "lang": f.get("lang", "en")}
+        return {
+            "text": f"{f.get('charger_id')}: {f.get('summary', '')} Parts: {parts}.",
+            "lang": f.get("lang", "en"),
+        }
 
 
 class AnthropicProvider:
@@ -130,9 +166,15 @@ class AnthropicProvider:
 
         self.client = anthropic.Anthropic(base_url=os.environ.get("ANTHROPIC_BASE_URL"))
 
-    def complete(self, model: str, use_case: str, fields: dict[str, Any], max_tokens: int) -> tuple[str, int, int]:
-        r = self.client.messages.create(model=model, max_tokens=max_tokens, system=prompts.SYSTEM[use_case],
-                                        messages=[{"role": "user", "content": prompts.render(use_case, fields)}])
+    def complete(
+        self, model: str, use_case: str, fields: dict[str, Any], max_tokens: int
+    ) -> tuple[str, int, int]:
+        r = self.client.messages.create(
+            model=model,
+            max_tokens=max_tokens,
+            system=prompts.SYSTEM[use_case],
+            messages=[{"role": "user", "content": prompts.render(use_case, fields)}],
+        )
         text = "".join(b.text for b in r.content if getattr(b, "type", "") == "text")
         return text, r.usage.input_tokens, r.usage.output_tokens
 
@@ -147,11 +189,17 @@ class AzureFoundryProvider:
 
         self.client = OpenAI(base_url=os.environ["AZURE_AI_ENDPOINT"], api_key=os.environ["AZURE_AI_KEY"])
 
-    def complete(self, model: str, use_case: str, fields: dict[str, Any], max_tokens: int) -> tuple[str, int, int]:
+    def complete(
+        self, model: str, use_case: str, fields: dict[str, Any], max_tokens: int
+    ) -> tuple[str, int, int]:
         r = self.client.chat.completions.create(
-            model=model, max_tokens=max_tokens,
-            messages=[{"role": "system", "content": prompts.SYSTEM[use_case]},
-                      {"role": "user", "content": prompts.render(use_case, fields)}])
+            model=model,
+            max_tokens=max_tokens,
+            messages=[
+                {"role": "system", "content": prompts.SYSTEM[use_case]},
+                {"role": "user", "content": prompts.render(use_case, fields)},
+            ],
+        )
         u = r.usage
         return r.choices[0].message.content or "", u.prompt_tokens, u.completion_tokens
 

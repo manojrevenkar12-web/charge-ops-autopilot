@@ -49,7 +49,15 @@ CP_ACTIONS = {
     "SecurityEventNotification",
     "FirmwareStatusNotification",
 }
-CS_ACTIONS = {"RequestStartTransaction", "Reset", "UnlockConnector", "ChangeAvailability", "UpdateFirmware", "GetLog", "TriggerMessage"}
+CS_ACTIONS = {
+    "RequestStartTransaction",
+    "Reset",
+    "UnlockConnector",
+    "ChangeAvailability",
+    "UpdateFirmware",
+    "GetLog",
+    "TriggerMessage",
+}
 
 
 def empty() -> pl.DataFrame:
@@ -73,13 +81,21 @@ def to_payload(row: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     if a == "BootNotification":
         return a, {
             "reason": row["status"] or "PowerUp",
-            "chargingStation": {"model": row["component"] or "unknown", "vendorName": row["tech_info"] or "unknown",
-                                "firmwareVersion": row["firmware"] or ""},
+            "chargingStation": {
+                "model": row["component"] or "unknown",
+                "vendorName": row["tech_info"] or "unknown",
+                "firmwareVersion": row["firmware"] or "",
+            },
         }
     if a == "Heartbeat":
         return a, {}
     if a == "StatusNotification":
-        return a, {"timestamp": t, "connectorStatus": row["status"], "evseId": int(row["evse"]), "connectorId": 1}
+        return a, {
+            "timestamp": t,
+            "connectorStatus": row["status"],
+            "evseId": int(row["evse"]),
+            "connectorId": 1,
+        }
     if a == "Authorize":
         return a, {"idToken": {"idToken": row["tx_id"] or "token", "type": row["id_token_type"]}}
     if a == "TransactionEvent":
@@ -108,7 +124,8 @@ def to_payload(row: dict[str, Any]) -> tuple[str, dict[str, Any]]:
             "trigger": "Alerting" if row["tech_code"] else "Periodic",
             "actualValue": "" if row["value"] is None else f"{row['value']:g}",
             "eventNotificationType": "HardWiredNotification",
-            "component": {"name": row["component"]} | ({"evse": {"id": int(row["evse"])}} if row["evse"] else {}),
+            "component": {"name": row["component"]}
+            | ({"evse": {"id": int(row["evse"])}} if row["evse"] else {}),
             "variable": {"name": row["variable"]},
         }
         if row["tech_code"]:
@@ -117,55 +134,99 @@ def to_payload(row: dict[str, Any]) -> tuple[str, dict[str, Any]]:
             ev["techInfo"] = row["tech_info"][:500]
         return a, {"generatedAt": t, "seqNo": 0, "eventData": [ev]}
     if a == "SecurityEventNotification":
-        return a, {"type": row["status"], "timestamp": t} | ({"techInfo": row["tech_info"]} if row["tech_info"] else {})
+        return a, {"type": row["status"], "timestamp": t} | (
+            {"techInfo": row["tech_info"]} if row["tech_info"] else {}
+        )
     if a == "FirmwareStatusNotification":
         return a, {"status": row["status"]}
     if a == "RequestStartTransaction":
-        return a, {"idToken": {"idToken": "app-token", "type": "eMAID"}, "remoteStartId": 1, "evseId": int(row["evse"])}
+        return a, {
+            "idToken": {"idToken": "app-token", "type": "eMAID"},
+            "remoteStartId": 1,
+            "evseId": int(row["evse"]),
+        }
     if a == "Reset":
         return a, {"type": "Immediate"} | ({"evseId": int(row["evse"])} if row["evse"] else {})
     if a == "UnlockConnector":
         return a, {"evseId": int(row["evse"]), "connectorId": 1}
     if a == "ChangeAvailability":
-        return a, {"operationalStatus": row["status"]} | ({"evse": {"id": int(row["evse"])}} if row["evse"] else {})
+        return a, {"operationalStatus": row["status"]} | (
+            {"evse": {"id": int(row["evse"])}} if row["evse"] else {}
+        )
     if a == "UpdateFirmware":
-        return a, {"requestId": 1, "firmware": {"location": f"https://firmware.example/{row['firmware']}",
-                                                 "retrieveDateTime": t}}
+        return a, {
+            "requestId": 1,
+            "firmware": {"location": f"https://firmware.example/{row['firmware']}", "retrieveDateTime": t},
+        }
     if a == "GetLog":
-        return a, {"logType": "DiagnosticsLog", "requestId": 1, "log": {"remoteLocation": "https://logs.example/up"}}
+        return a, {
+            "logType": "DiagnosticsLog",
+            "requestId": 1,
+            "log": {"remoteLocation": "https://logs.example/up"},
+        }
     if a == "TriggerMessage":
         return a, {"requestedMessage": row["status"] or "StatusNotification"}
     raise ValueError(f"no payload for {a}")
 
 
-def from_payload(action: str, payload: dict[str, Any], *, charger_id: str, received: int, direction: str = "cp",
-                 message_id: str | None = None) -> list[dict[str, Any]]:
+def from_payload(
+    action: str,
+    payload: dict[str, Any],
+    *,
+    charger_id: str,
+    received: int,
+    direction: str = "cp",
+    message_id: str | None = None,
+) -> list[dict[str, Any]]:
     """Flat rows for a real OCPP 2.0.1 call (the live CSMS). NotifyEvent may carry several events."""
-    base = {c: None for c in COLUMNS} | {"charger_id": charger_id, "received": received, "ts": received,
-                                         "direction": direction, "action": action, "evse": 0,
-                                         "message_id": message_id}
+    base = {c: None for c in COLUMNS} | {
+        "charger_id": charger_id,
+        "received": received,
+        "ts": received,
+        "direction": direction,
+        "action": action,
+        "evse": 0,
+        "message_id": message_id,
+    }
 
     def ts(s: str | None) -> int:
         return int(datetime.fromisoformat(s.replace("Z", "+00:00")).timestamp()) if s else received
 
     if action == "BootNotification":
         cs = payload.get("chargingStation", {})
-        return [base | {"status": payload.get("reason"), "component": cs.get("model"),
-                        "tech_info": cs.get("vendorName"), "firmware": cs.get("firmwareVersion")}]
+        return [
+            base
+            | {
+                "status": payload.get("reason"),
+                "component": cs.get("model"),
+                "tech_info": cs.get("vendorName"),
+                "firmware": cs.get("firmwareVersion"),
+            }
+        ]
     if action == "Heartbeat":
         return [base]
     if action == "StatusNotification":
-        return [base | {"ts": ts(payload.get("timestamp")), "status": payload["connectorStatus"],
-                        "evse": payload["evseId"]}]
+        return [
+            base
+            | {
+                "ts": ts(payload.get("timestamp")),
+                "status": payload["connectorStatus"],
+                "evse": payload["evseId"],
+            }
+        ]
     if action == "Authorize":
         return [base | {"id_token_type": payload["idToken"]["type"], "tx_id": payload["idToken"]["idToken"]}]
     if action == "TransactionEvent":
         info = payload.get("transactionInfo", {})
-        row = base | {"ts": ts(payload.get("timestamp")), "event_type": payload["eventType"],
-                      "trigger_reason": payload.get("triggerReason"), "tx_id": info.get("transactionId"),
-                      "stopped_reason": info.get("stoppedReason"),
-                      "evse": (payload.get("evse") or {}).get("id", 0),
-                      "id_token_type": (payload.get("idToken") or {}).get("type")}
+        row = base | {
+            "ts": ts(payload.get("timestamp")),
+            "event_type": payload["eventType"],
+            "trigger_reason": payload.get("triggerReason"),
+            "tx_id": info.get("transactionId"),
+            "stopped_reason": info.get("stoppedReason"),
+            "evse": (payload.get("evse") or {}).get("id", 0),
+            "id_token_type": (payload.get("idToken") or {}).get("type"),
+        }
         for mv in payload.get("meterValue", []):
             for sv in mv.get("sampledValue", []):
                 if sv.get("measurand", "Energy.Active.Import.Register") == "Energy.Active.Import.Register":
@@ -181,14 +242,28 @@ def from_payload(action: str, payload: dict[str, Any], *, charger_id: str, recei
                 num = float(v)
             except ValueError:
                 num = None
-            out.append(base | {"ts": ts(ev.get("timestamp")), "component": ev["component"]["name"],
-                               "variable": ev["variable"]["name"], "value": num,
-                               "evse": (ev["component"].get("evse") or {}).get("id", 0),
-                               "tech_code": ev.get("techCode"), "tech_info": ev.get("techInfo")})
+            out.append(
+                base
+                | {
+                    "ts": ts(ev.get("timestamp")),
+                    "component": ev["component"]["name"],
+                    "variable": ev["variable"]["name"],
+                    "value": num,
+                    "evse": (ev["component"].get("evse") or {}).get("id", 0),
+                    "tech_code": ev.get("techCode"),
+                    "tech_info": ev.get("techInfo"),
+                }
+            )
         return out
     if action == "SecurityEventNotification":
-        return [base | {"ts": ts(payload.get("timestamp")), "status": payload["type"],
-                        "tech_info": payload.get("techInfo")}]
+        return [
+            base
+            | {
+                "ts": ts(payload.get("timestamp")),
+                "status": payload["type"],
+                "tech_info": payload.get("techInfo"),
+            }
+        ]
     if action == "FirmwareStatusNotification":
         return [base | {"status": payload["status"]}]
     return [base]

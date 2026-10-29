@@ -57,17 +57,28 @@ class Registry:
         self.client = mlflow.MlflowClient(self.uri, self.uri)
         exp = settings.models()["registry"]["experiment"]
         e = self.client.get_experiment_by_name(exp)
-        self.experiment = e.experiment_id if e else self.client.create_experiment(
-            exp, artifact_location=(self.root / "artifacts").as_uri())
+        self.experiment = (
+            e.experiment_id
+            if e
+            else self.client.create_experiment(exp, artifact_location=(self.root / "artifacts").as_uri())
+        )
 
-    def register(self, m: TrainedModel, onnx_bytes: bytes, checks: dict[str, Any], tags: dict[str, str]) -> str:
+    def register(
+        self, m: TrainedModel, onnx_bytes: bytes, checks: dict[str, Any], tags: dict[str, str]
+    ) -> str:
         name = m.kind
         with tempfile.TemporaryDirectory() as td:
             d = Path(td)
             m.booster.save_model(str(d / "model.txt"))
             (d / "model.onnx").write_bytes(onnx_bytes)
-            meta = {"kind": m.kind, "classes": m.classes, "encoder": m.encoder.to_json(), "metrics": m.metrics,
-                    "card": m.card, "checks": checks}
+            meta = {
+                "kind": m.kind,
+                "classes": m.classes,
+                "encoder": m.encoder.to_json(),
+                "metrics": m.metrics,
+                "card": m.card,
+                "checks": checks,
+            }
             (d / "meta.json").write_text(json.dumps(meta, indent=1, default=float))
             run = self.client.create_run(self.experiment, tags={"model": name, **tags})
             rid = run.info.run_id
@@ -112,21 +123,34 @@ class Registry:
         import onnxruntime as ort
 
         mv = self.client.get_model_version(name, version)
-        local = Path(self.mlflow.artifacts.download_artifacts(run_id=mv.run_id, artifact_path="model",
-                                                              tracking_uri=self.uri))
+        local = Path(
+            self.mlflow.artifacts.download_artifacts(
+                run_id=mv.run_id, artifact_path="model", tracking_uri=self.uri
+            )
+        )
         meta = json.loads((local / "meta.json").read_text())
         so = ort.SessionOptions()
         so.intra_op_num_threads = 1
         so.log_severity_level = 3
-        sess = ort.InferenceSession((local / "model.onnx").read_bytes(), so, providers=["CPUExecutionProvider"])
+        sess = ort.InferenceSession(
+            (local / "model.onnx").read_bytes(), so, providers=["CPUExecutionProvider"]
+        )
         booster = lgb.Booster(model_file=str(local / "model.txt"))
-        return ServedModel(name, version, meta["classes"], Encoder.from_json(meta["encoder"]), sess, booster, meta)
+        return ServedModel(
+            name, version, meta["classes"], Encoder.from_json(meta["encoder"]), sess, booster, meta
+        )
 
     def versions(self, name: str) -> list[dict[str, Any]]:
         out = []
         for mv in self.client.search_model_versions(f"name='{name}'"):
-            out.append({"version": mv.version, "tags": dict(mv.tags), "aliases": list(mv.aliases),
-                        "created": mv.creation_timestamp})
+            out.append(
+                {
+                    "version": mv.version,
+                    "tags": dict(mv.tags),
+                    "aliases": list(mv.aliases),
+                    "created": mv.creation_timestamp,
+                }
+            )
         return sorted(out, key=lambda r: int(r["version"]))
 
 

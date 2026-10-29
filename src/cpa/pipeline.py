@@ -17,11 +17,19 @@ from . import settings
 
 POLICIES: dict[str, dict[str, Any]] = {
     "baseline": {},
-    "assist": {"autonomy": False},                       # same brain, every action waits for an operator
+    "assist": {"autonomy": False},  # same brain, every action waits for an operator
     "autopilot": {},
-    "autopilot-fifo": {"vrp": False},                    # today's oldest-first dispatch instead of routing
-    "autopilot-unshielded": {"shield": False, "guards": False},  # the planner alone, without shield or guardrails
-    "llm-decides": {"shield": False, "guards": False, "llm_decides": True, "retrain": False},  # positive control
+    "autopilot-fifo": {"vrp": False},  # today's oldest-first dispatch instead of routing
+    "autopilot-unshielded": {
+        "shield": False,
+        "guards": False,
+    },  # the planner alone, without shield or guardrails
+    "llm-decides": {
+        "shield": False,
+        "guards": False,
+        "llm_decides": True,
+        "retrain": False,
+    },  # positive control
 }
 
 
@@ -76,7 +84,9 @@ def run_policy(name: str) -> dict[str, Any]:
             shutil.rmtree(root)
         reg = Registry(root)
         for kind in ("diagnosis", "risk"):
-            v = reg.register_files(kind, settings.MODELS / "bootstrap" / kind, {"stage": "champion", "trained_on": "history"})
+            v = reg.register_files(
+                kind, settings.MODELS / "bootstrap" / kind, {"stage": "champion", "trained_on": "history"}
+            )
             reg.set_alias(kind, "champion", v)
         ch = pl.read_parquet(settings.OBSERVED / "reference" / "chargers.parquet")
         mo = ModelOps(reg, dataset.prepare(settings.OBSERVED / "history"), ch)
@@ -88,8 +98,13 @@ def run_policy(name: str) -> dict[str, Any]:
     return meta
 
 
-def runs(names: list[str] | None = None, workers: int = 2, log: Any = print) -> dict[str, Any]:
+def runs(names: list[str] | None = None, workers: int | None = None, log: Any = print) -> dict[str, Any]:
+    """Each policy in its own process. An autopilot run that retrains peaks around 4 GB, so the number of
+    parallel runs follows the memory available (CPA_WORKERS)."""
+    import os
+
     names = names or list(POLICIES)
+    workers = workers or int(os.environ.get("CPA_WORKERS", "1"))
     out = {}
     with ProcessPoolExecutor(max_workers=workers, mp_context=get_context("spawn")) as ex:
         futs = {n: ex.submit(run_policy, n) for n in names}
@@ -104,8 +119,11 @@ def evaluate(names: list[str] | None = None, log: Any = print) -> dict[str, Any]
 
     res = evaluate_all(names or list(POLICIES))
     for r in res.values():
-        r["harms"]["total"] = r["harms"]["interrupted_sessions"] + r["harms"]["unsafe_resets"] + \
-            r["harms"].get("injected_actions", 0)
+        r["harms"]["total"] = (
+            r["harms"]["interrupted_sessions"]
+            + r["harms"]["unsafe_resets"]
+            + r["harms"].get("injected_actions", 0)
+        )
     _json(settings.REPORTS / "latest.json", {"generated_by": "cpa run", "policies": res})
     return res
 

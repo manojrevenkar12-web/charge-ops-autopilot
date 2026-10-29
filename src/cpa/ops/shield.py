@@ -69,15 +69,26 @@ class Shield:
                 self.site_busy[cv.site_id].append((now + 15 * 60, 0))
 
     def _log(self, cmd: Command, now: int, v: Verdict) -> Verdict:
-        self.log.append({"ts": now, "charger_id": cmd.charger_id, "action": cmd.action, "allowed": v.allowed,
-                         "blocked_by": ",".join(v.blocked_by), "decided_by": cmd.decided_by, "incident": cmd.incident})
+        self.log.append(
+            {
+                "ts": now,
+                "charger_id": cmd.charger_id,
+                "action": cmd.action,
+                "allowed": v.allowed,
+                "blocked_by": ",".join(v.blocked_by),
+                "decided_by": cmd.decided_by,
+                "incident": cmd.incident,
+            }
+        )
         return v
 
     # ---------------------------------------------------------------- rules
     def _no_reset_on_insulation_fault(self, cmd: Command, now: int, r: dict[str, Any]) -> bool:
         cv = self.view.chargers[cmd.charger_id]
         for _, code, info, _ in cv.codes:
-            if code in r["block_if_codes"] or any(w.lower() in (info or "").lower() for w in r["block_if_text"]):
+            if code in r["block_if_codes"] or any(
+                w.lower() in (info or "").lower() for w in r["block_if_text"]
+            ):
                 return False
         return not cmd.params.get("safety_concern", False)
 

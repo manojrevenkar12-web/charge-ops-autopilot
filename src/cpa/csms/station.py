@@ -25,12 +25,16 @@ from ocpp.v201.enums import (
 from .. import ocpp_flat
 from .server import Clock
 
-CODES = {"isolation_fault": ("0x1F01", "isolation monitor fault, output disabled"),
-         "connector_lock": ("0x2A07", "lock motor timeout on connector 1")}
+CODES = {
+    "isolation_fault": ("0x1F01", "isolation monitor fault, output disabled"),
+    "connector_lock": ("0x2A07", "lock motor timeout on connector 1"),
+}
 
 
 class Station(ChargePoint):
-    def __init__(self, sid: str, ws: Any, clock: Clock, model: str = "DC-150", firmware: str = "2.12.1") -> None:
+    def __init__(
+        self, sid: str, ws: Any, clock: Clock, model: str = "DC-150", firmware: str = "2.12.1"
+    ) -> None:
         super().__init__(sid, ws, response_timeout=10)
         self.clock, self.model, self.firmware = clock, model, firmware
         self.faults: set[str] = set()
@@ -42,13 +46,22 @@ class Station(ChargePoint):
         self._tx = itertools.count(1)
 
     async def send(self, flat: dict[str, Any]) -> Any:
-        action, payload = ocpp_flat.to_payload({c: None for c in ocpp_flat.COLUMNS} | {"ts": self.clock.now()} | flat)
+        action, payload = ocpp_flat.to_payload(
+            {c: None for c in ocpp_flat.COLUMNS} | {"ts": self.clock.now()} | flat
+        )
         req = getattr(call, action)(**camel_to_snake_case(payload))
         return await self.call(req)
 
     async def boot(self, reason: str = "PowerUp") -> None:
-        await self.send({"action": "BootNotification", "status": reason, "component": self.model,
-                         "tech_info": "Nordvolt", "firmware": self.firmware})
+        await self.send(
+            {
+                "action": "BootNotification",
+                "status": reason,
+                "component": self.model,
+                "tech_info": "Nordvolt",
+                "firmware": self.firmware,
+            }
+        )
         for e in (1, 2):
             await self.set_status(e, self._computed(e))
 
@@ -67,9 +80,17 @@ class Station(ChargePoint):
         self.faults.add(kind)
         if kind in CODES:
             code, info = CODES[kind]
-            await self.send({"action": "NotifyEvent", "evse": 1 if kind == "connector_lock" else 0,
-                             "component": "Connector" if kind == "connector_lock" else "ChargingStation",
-                             "variable": "Problem", "value": 1.0, "tech_code": code, "tech_info": info})
+            await self.send(
+                {
+                    "action": "NotifyEvent",
+                    "evse": 1 if kind == "connector_lock" else 0,
+                    "component": "Connector" if kind == "connector_lock" else "ChargingStation",
+                    "variable": "Problem",
+                    "value": 1.0,
+                    "tech_code": code,
+                    "tech_info": info,
+                }
+            )
             for e in (1, 2):
                 if self._computed(e) != self.status[e]:
                     await self.set_status(e, self._computed(e))
@@ -86,8 +107,17 @@ class Station(ChargePoint):
             return False  # authorised, but the stalled controller never starts the transaction
         tx = f"{self.id}-{next(self._tx)}"
         self.sessions[evse] = tx
-        await self.send({"action": "TransactionEvent", "evse": evse, "event_type": "Started",
-                         "trigger_reason": "Authorized", "tx_id": tx, "id_token_type": "ISO14443", "energy_wh": 0.0})
+        await self.send(
+            {
+                "action": "TransactionEvent",
+                "evse": evse,
+                "event_type": "Started",
+                "trigger_reason": "Authorized",
+                "tx_id": tx,
+                "id_token_type": "ISO14443",
+                "energy_wh": 0.0,
+            }
+        )
         await self.set_status(evse, "Occupied")
         if not leave_running:
             await self.clock.sleep_sim(minutes * 60)
@@ -98,9 +128,18 @@ class Station(ChargePoint):
         tx = self.sessions.pop(evse, None)
         if tx is None:
             return
-        await self.send({"action": "TransactionEvent", "evse": evse, "event_type": "Ended",
-                         "trigger_reason": "EVDeparted" if reason == "EVDisconnected" else "ResetCommand",
-                         "tx_id": tx, "stopped_reason": reason, "energy_wh": 18000.0, "power_w": 90000.0})
+        await self.send(
+            {
+                "action": "TransactionEvent",
+                "evse": evse,
+                "event_type": "Ended",
+                "trigger_reason": "EVDeparted" if reason == "EVDisconnected" else "ResetCommand",
+                "tx_id": tx,
+                "stopped_reason": reason,
+                "energy_wh": 18000.0,
+                "power_w": 90000.0,
+            }
+        )
         await self.set_status(evse, self._computed(evse))
 
     # ------------------------------------------------------------------ commands from the CSMS
@@ -145,10 +184,11 @@ class Station(ChargePoint):
         return call_result.UnlockConnector(status=UnlockStatusEnumType.unlocked)
 
     @on(Action.change_availability)
-    async def on_availability(self, operational_status: str, evse: dict | None = None,
-                              **_: Any) -> call_result.ChangeAvailability:
+    async def on_availability(
+        self, operational_status: str, evse: dict | None = None, **_: Any
+    ) -> call_result.ChangeAvailability:
         self.received.append(f"ChangeAvailability {operational_status}")
-        for e in ([evse["id"]] if evse else [1, 2]):
+        for e in [evse["id"]] if evse else [1, 2]:
             self.operative[e] = operational_status == "Operative"
             asyncio.get_running_loop().create_task(self.set_status(e, self._computed(e)))
         return call_result.ChangeAvailability(status=ChangeAvailabilityStatusEnumType.accepted)

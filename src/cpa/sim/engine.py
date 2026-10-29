@@ -43,8 +43,9 @@ class SessionState:
 
 
 class Engine:
-    def __init__(self, world: World, policy: Policy, start: int, end: int, run_id: str, *,
-                 shield_audit: bool = True) -> None:
+    def __init__(
+        self, world: World, policy: Policy, start: int, end: int, run_id: str, *, shield_audit: bool = True
+    ) -> None:
         self.w, self.policy, self.start, self.end, self.run_id = world, policy, start, end, run_id
         cfg = world.cfg
         self.cfg = cfg
@@ -112,6 +113,7 @@ class Engine:
         self.episodes_seen: list[Episode] = []
         self.firmware_events: list[dict[str, Any]] = []
         self.pending_cmds: list[Command] = []
+        self.carry: pl.DataFrame | None = None
         self.plans: dict[str, list[Stop]] = {}
         fs = cfg["field_service"]
         self.fs = fs
@@ -123,8 +125,16 @@ class Engine:
 
     # ---------------------------------------------------------------- emission
     def emit(self, c: int, ts: int, action: str, direction: str = "cp", **kw: Any) -> None:
-        row = {"ts": int(ts), "received": int(ts), "charger_id": self.cid[c], "direction": direction,
-               "action": action, "evse": kw.pop("evse", 0), "message_id": f"m{next(self.msg_counter)}", **kw}
+        row = {
+            "ts": int(ts),
+            "received": int(ts),
+            "charger_id": self.cid[c],
+            "direction": direction,
+            "action": action,
+            "evse": kw.pop("evse", 0),
+            "message_id": f"m{next(self.msg_counter)}",
+            **kw,
+        }
         if direction == "cp" and not self.online[c]:
             if action == "TransactionEvent":
                 self.queue[c].append(row)
@@ -206,10 +216,23 @@ class Engine:
 
     def run(self) -> None:
         w = self.w
-        ref = {"chargers": w.chargers.select(["charger_id", "site_id", "country", "model", "vendor", "kind", "kw",
-                                             "connectors", "firmware"]),
-               "sites": w.sites.select(["site_id", "country", "lat", "lon", "utc_offset", "motorway"]),
-               "technicians": w.technicians}
+        ref = {
+            "chargers": w.chargers.select(
+                [
+                    "charger_id",
+                    "site_id",
+                    "country",
+                    "model",
+                    "vendor",
+                    "kind",
+                    "kw",
+                    "connectors",
+                    "firmware",
+                ]
+            ),
+            "sites": w.sites.select(["site_id", "country", "lat", "lon", "utc_offset", "motorway"]),
+            "technicians": w.technicians,
+        }
         self.policy.start(ref, self.start)
         for c in range(self.n):
             self._recompute_usable(c, self.start)
@@ -251,17 +274,30 @@ class Engine:
         ok = ~self.excluded
         self.usable_h[di] += np.where(ok, self.usable[:, 1] + self.usable[:, 2], 0)
         self.total_h[di] += np.where(ok, 2, 0)
-        rep = np.array([(self.online[c] and self.status[c][1] in ("Available", "Occupied"))
-                        + (self.online[c] and self.status[c][2] in ("Available", "Occupied")) for c in range(self.n)])
+        rep = np.array(
+            [
+                (self.online[c] and self.status[c][1] in ("Available", "Occupied"))
+                + (self.online[c] and self.status[c][2] in ("Available", "Occupied"))
+                for c in range(self.n)
+            ]
+        )
         self.reported_h[di] += np.where(ok, rep, 0)
-        # what operations sees
+        # what operations sees: only what the CSMS has received by the end of the hour (a message stamped
+        # just before the hour ends may arrive in the next one)
         frame = ocpp_flat.frame(self.rows)
         self.rows = {c: [] for c in ocpp_flat.COLUMNS}
+        if self.carry is not None:
+            frame = pl.concat([self.carry, frame]).sort("received")
+        self.carry = frame.filter(pl.col("received") >= he)
+        frame = frame.filter(pl.col("received") < he)
         self.frames.append(frame)
-        obs = Observation(now=he, messages=frame,
-                          complaints=pl.DataFrame(self.hour_complaints, schema=COMPLAINT_SCHEMA),
-                          visits=pl.DataFrame(self.hour_visits, schema=VISIT_SCHEMA),
-                          logs=pl.DataFrame(self.hour_logs, schema=LOG_SCHEMA))
+        obs = Observation(
+            now=he,
+            messages=frame,
+            complaints=pl.DataFrame(self.hour_complaints, schema=COMPLAINT_SCHEMA),
+            visits=pl.DataFrame(self.hour_visits, schema=VISIT_SCHEMA),
+            logs=pl.DataFrame(self.hour_logs, schema=LOG_SCHEMA),
+        )
         self.hour_complaints, self.hour_visits, self.hour_logs = [], [], []
         self.pending_cmds = list(self.policy.on_hour(obs))
 
@@ -271,10 +307,13 @@ class Engine:
         for c in np.nonzero(self.online)[0]:
             t = hs + (int(c) * 37) % HOUR
             rows.append((t, self.cid[c]))
-        hb = pl.DataFrame({"ts": [r[0] for r in rows], "charger_id": [r[1] for r in rows]},
-                          schema={"ts": pl.Int64, "charger_id": pl.Utf8})
-        hb = hb.with_columns(received=pl.col("ts"), direction=pl.lit("cp"), action=pl.lit("Heartbeat"),
-                             evse=pl.lit(0, pl.Int8))
+        hb = pl.DataFrame(
+            {"ts": [r[0] for r in rows], "charger_id": [r[1] for r in rows]},
+            schema={"ts": pl.Int64, "charger_id": pl.Utf8},
+        )
+        hb = hb.with_columns(
+            received=pl.col("ts"), direction=pl.lit("cp"), action=pl.lit("Heartbeat"), evse=pl.lit(0, pl.Int8)
+        )
         tele_c = [c for c in np.nonzero(self.online)[0] if self.kind[c] != "AC" and (h + c) % 4 == 0]
         temps = []
         local = (h + self.utc) % 24
@@ -286,30 +325,66 @@ class Engine:
                     prog = min(1.0, (hs - ep.start) / max(ep.onset_end - ep.start, 1))
                     base += self.cfg["faults"]["power_module"]["signals"]["temperature_rise_c"] * prog
             temps.append(round(base, 1))
-        tele = pl.DataFrame({"ts": [hs + 1800 + int(c) % 600 for c in tele_c],
-                             "charger_id": [self.cid[c] for c in tele_c], "value": temps},
-                            schema={"ts": pl.Int64, "charger_id": pl.Utf8, "value": pl.Float64})
-        tele = tele.with_columns(received=pl.col("ts"), direction=pl.lit("cp"), action=pl.lit("NotifyEvent"),
-                                 evse=pl.lit(0, pl.Int8), component=pl.lit("PowerModule"),
-                                 variable=pl.lit("Temperature"))
+        tele = pl.DataFrame(
+            {
+                "ts": [hs + 1800 + int(c) % 600 for c in tele_c],
+                "charger_id": [self.cid[c] for c in tele_c],
+                "value": temps,
+            },
+            schema={"ts": pl.Int64, "charger_id": pl.Utf8, "value": pl.Float64},
+        )
+        tele = tele.with_columns(
+            received=pl.col("ts"),
+            direction=pl.lit("cp"),
+            action=pl.lit("NotifyEvent"),
+            evse=pl.lit(0, pl.Int8),
+            component=pl.lit("PowerModule"),
+            variable=pl.lit("Temperature"),
+        )
         for c in range(self.n):  # silent faults that leave traces now and then
             for ep in self.active[c]:
                 if not self.online[c]:
                     continue
                 sig = self.cfg["faults"][ep.kind].get("signals", {})
                 if ep.kind == "controller_hang" and g[c, 1] < sig.get("watchdog_event", 0):
-                    self.emit(c, hs + int(g[c, 2] * HOUR), "NotifyEvent", component="Controller",
-                              variable="Watchdog", value=1.0, tech_code=None,
-                              tech_info=self._vendor_info(ep, g[c, 3]))
+                    self.emit(
+                        c,
+                        hs + int(g[c, 2] * HOUR),
+                        "NotifyEvent",
+                        component="Controller",
+                        variable="Watchdog",
+                        value=1.0,
+                        tech_code=None,
+                        tech_info=self._vendor_info(ep, g[c, 3]),
+                    )
                 if ep.kind == "payment_terminal" and g[c, 4] < sig.get("terminal_event", 0):
-                    self.emit(c, hs + int(g[c, 5] * HOUR), "NotifyEvent", component="PaymentTerminal",
-                              variable="Problem", value=1.0, tech_code=self._code(ep, c),
-                              tech_info=self._vendor_info(ep, g[c, 6]))
+                    self.emit(
+                        c,
+                        hs + int(g[c, 5] * HOUR),
+                        "NotifyEvent",
+                        component="PaymentTerminal",
+                        variable="Problem",
+                        value=1.0,
+                        tech_code=self._code(ep, c),
+                        tech_info=self._vendor_info(ep, g[c, 6]),
+                    )
         extra = [hb, tele]
         cur = ocpp_flat.frame(self.rows) if self.rows["ts"] else ocpp_flat.empty()
         self.rows = {k: [] for k in ocpp_flat.COLUMNS}
-        merged = pl.concat([cur, *[x.select([pl.col(k) if k in x.columns else pl.lit(None, v).alias(k)
-                                              for k, v in ocpp_flat.SCHEMA.items()]) for x in extra]])
+        merged = pl.concat(
+            [
+                cur,
+                *[
+                    x.select(
+                        [
+                            pl.col(k) if k in x.columns else pl.lit(None, v).alias(k)
+                            for k, v in ocpp_flat.SCHEMA.items()
+                        ]
+                    )
+                    for x in extra
+                ],
+            ]
+        )
         merged = merged.sort("received")
         for k in ocpp_flat.COLUMNS:
             self.rows[k] = merged[k].to_list()
@@ -336,9 +411,17 @@ class Engine:
         if ep.kind == "power_module":
             self.push(ep.onset_end, "pm_trip", ep)
         elif ep.kind in ("connector_lock", "isolation_fault"):
-            self.emit(c, t + 1, "NotifyEvent", evse=ep.evse, component="Connector" if ep.evse else "ChargingStation",
-                      variable="Problem", value=1.0, tech_code=self._code(ep, c),
-                      tech_info=self._vendor_info(ep, ep.remedy_u[-2]))
+            self.emit(
+                c,
+                t + 1,
+                "NotifyEvent",
+                evse=ep.evse,
+                component="Connector" if ep.evse else "ChargingStation",
+                variable="Problem",
+                value=1.0,
+                tech_code=self._code(ep, c),
+                tech_info=self._vendor_info(ep, ep.remedy_u[-2]),
+            )
         elif ep.kind == "comm_loss":
             self.still_charges[c] = ep.remedy_u[-1] < f["effect"]["still_charges"]
             self._go_offline(c, t)
@@ -348,16 +431,32 @@ class Engine:
         if ep not in self.active[ep.charger]:
             return
         c = ep.charger
-        self.emit(c, t, "NotifyEvent", component="PowerModule", variable="Problem", value=1.0,
-                  tech_code=self._code(ep, c), tech_info=self._vendor_info(ep, ep.remedy_u[-2]))
+        self.emit(
+            c,
+            t,
+            "NotifyEvent",
+            component="PowerModule",
+            variable="Problem",
+            value=1.0,
+            tech_code=self._code(ep, c),
+            tech_info=self._vendor_info(ep, ep.remedy_u[-2]),
+        )
         self._interrupt(c, 0, t, "PowerLoss", cause="power_module")
         self._refresh(c, t)
 
     def _on_relief_end(self, t: int, ep: Episode) -> None:
         if ep in self.active[ep.charger] and ep.relief_until <= t:
             c = ep.charger
-            self.emit(c, t, "NotifyEvent", component="PowerModule", variable="Problem", value=1.0,
-                      tech_code=self._code(ep, c), tech_info=self._vendor_info(ep, ep.remedy_u[-3]))
+            self.emit(
+                c,
+                t,
+                "NotifyEvent",
+                component="PowerModule",
+                variable="Problem",
+                value=1.0,
+                tech_code=self._code(ep, c),
+                tech_info=self._vendor_info(ep, ep.remedy_u[-3]),
+            )
             self._interrupt(c, 0, t, "PowerLoss", cause="power_module")
             self._refresh(c, t)
 
@@ -381,8 +480,15 @@ class Engine:
         self.online[c] = True
         self.still_charges[c] = True
         if boot:
-            self.emit(c, t, "BootNotification", status="PowerUp", component=self.model[c],
-                      tech_info=self.w.chargers["vendor"][c], firmware=self.firmware[c])
+            self.emit(
+                c,
+                t,
+                "BootNotification",
+                status="PowerUp",
+                component=self.model[c],
+                tech_info=self.w.chargers["vendor"][c],
+                firmware=self.firmware[c],
+            )
         for row in self.queue[c]:  # the offline queue arrives now, with the original timestamps
             row["received"] = t
             for k in ocpp_flat.COLUMNS:
@@ -412,8 +518,12 @@ class Engine:
         c, u = payload
         dcfg = self.cfg["drivers"]
         # the app shows Faulted/Unavailable connectors; drivers go to one that looks free
-        free = [e for e in (1, 2) if self.status[c][e] == "Available" and not any(
-            s.evse == e and s.start <= t < s.end for s in self.sessions[c])]
+        free = [
+            e
+            for e in (1, 2)
+            if self.status[c][e] == "Available"
+            and not any(s.evse == e and s.start <= t < s.end for s in self.sessions[c])
+        ]
         shown_down = [e for e in (1, 2) if self.status[c][e] in ("Faulted", "Unavailable")]
         if self.site_out[self.site[c]]:
             self._truth_session(t, c, 0, "", "outage", "grid_outage", 0.0)
@@ -447,19 +557,33 @@ class Engine:
                 self.emit(c, t + 2, "RequestStartTransaction", direction="res", evse=e, status="Accepted")
             else:
                 self.emit(c, t, "Authorize", id_token_type=token, status="Accepted")
-            if "controller_hang" in kinds and u[5] < self.cfg["faults"]["controller_hang"]["effect"]["start_fails"]:
+            if (
+                "controller_hang" in kinds
+                and u[5] < self.cfg["faults"]["controller_hang"]["effect"]["start_fails"]
+            ):
                 fail = ("fail_start", "controller_hang")
         if fail:
             self._truth_session(t, c, e, auth, fail[0], fail[1], 0.0)
             self._after_failure(t, c, u, fail, auth, retry)
             return
         tx = f"{self.run_id[:2]}{next(self.tx_counter)}"
-        self.emit(c, t + 20, "TransactionEvent", evse=e, event_type="Started",
-                  trigger_reason="RemoteStart" if auth == "app" else "Authorized", tx_id=tx, id_token_type=token,
-                  energy_wh=0.0)
+        self.emit(
+            c,
+            t + 20,
+            "TransactionEvent",
+            evse=e,
+            event_type="Started",
+            trigger_reason="RemoteStart" if auth == "app" else "Authorized",
+            tx_id=tx,
+            id_token_type=token,
+            energy_wh=0.0,
+        )
         bug = self._bug(c)
-        ev_fail = ("cable_wear" in kinds and kinds["cable_wear"].evse == e
-                   and u[6] < self.cfg["faults"]["cable_wear"]["effect"]["ev_comm_fails"])
+        ev_fail = (
+            "cable_wear" in kinds
+            and kinds["cable_wear"].evse == e
+            and u[6] < self.cfg["faults"]["cable_wear"]["effect"]["ev_comm_fails"]
+        )
         cause = "cable_wear"
         if not ev_fail and bug and u[2] < bug["affected_ev_share"] and u[7] < bug["ev_comm_fails"]:
             ev_fail, cause = True, "firmware_bug"
@@ -475,7 +599,11 @@ class Engine:
         kwh = self.cfg["drivers"]["kwh_per_session"][self.kind[c]] * (0.5 + u[3])
         derate = 1.0
         if "power_module" in kinds:
-            derate = self.cfg["faults"]["power_module"]["effect"]["derate_to"] if t >= kinds["power_module"].start else 1
+            derate = (
+                self.cfg["faults"]["power_module"]["effect"]["derate_to"]
+                if t >= kinds["power_module"].start
+                else 1
+            )
         car_kw = 11.0 if self.kind[c] == "AC" else min(self.kw[c] * derate, 60 + 140 * u[4])
         power = car_kw * 1000
         dur = int(kwh / car_kw * HOUR * (0.9 + 0.2 * u[4]))
@@ -491,14 +619,26 @@ class Engine:
                 return ep.kind
         return "unavailable"
 
-    def _after_failure(self, t: int, c: int, u: np.ndarray, fail: tuple[str, str], auth: str, retry: bool) -> None:
+    def _after_failure(
+        self, t: int, c: int, u: np.ndarray, fail: tuple[str, str], auth: str, retry: bool
+    ) -> None:
         d = self.cfg["drivers"]
         if u[9] < d["complaint_per_failure"]:
-            kind = {"rfid_reader": "rfid", "payment_terminal": "contactless", "controller_hang": "start",
-                    "cable_wear": "stops", "firmware_bug": "stops", "comm_loss": "offline"}.get(fail[1], "start")
+            kind = {
+                "rfid_reader": "rfid",
+                "payment_terminal": "contactless",
+                "controller_hang": "start",
+                "cable_wear": "stops",
+                "firmware_bug": "stops",
+                "comm_loss": "offline",
+            }.get(fail[1], "start")
             lang = self.lang[c] if u[10] > 0.3 else "en"
-            row = {"ts": t + 600, "charger_id": self.cid[c], "lang": lang,
-                   "text": texts.complaint(kind, lang, self.cid[c], float(u[10]))}
+            row = {
+                "ts": t + 600,
+                "charger_id": self.cid[c],
+                "lang": lang,
+                "text": texts.complaint(kind, lang, self.cid[c], float(u[10])),
+            }
             self.complaints.append(row)
             self.hour_complaints.append(row)
         if not retry and u[8] < d["retry_after_failure"]:
@@ -517,9 +657,18 @@ class Engine:
         if s not in self.sessions[c] or s.end != t:
             return
         self.sessions[c].remove(s)
-        self.emit(c, t, "TransactionEvent", evse=s.evse, event_type="Ended", trigger_reason=trig, tx_id=s.tx,
-                  stopped_reason=reason, energy_wh=round(s.energy_wh, 1),
-                  power_w=round(s.power_w, 0) if s.power_w else None)
+        self.emit(
+            c,
+            t,
+            "TransactionEvent",
+            evse=s.evse,
+            event_type="Ended",
+            trigger_reason=trig,
+            tx_id=s.tx,
+            stopped_reason=reason,
+            energy_wh=round(s.energy_wh, 1),
+            power_w=round(s.power_w, 0) if s.power_w else None,
+        )
         self._refresh(c, t)
 
     def _interrupt(self, c: int, evse: int, t: int, reason: str, cause: str, by: str = "") -> int:
@@ -531,20 +680,45 @@ class Engine:
                 s.energy_wh *= frac
                 s.end = t
                 self.sessions[c].remove(s)
-                self.emit(c, t, "TransactionEvent", evse=s.evse, event_type="Ended", trigger_reason="AbnormalCondition"
-                          if reason != "ImmediateReset" else "ResetCommand", tx_id=s.tx, stopped_reason=reason,
-                          energy_wh=round(s.energy_wh, 1))
+                self.emit(
+                    c,
+                    t,
+                    "TransactionEvent",
+                    evse=s.evse,
+                    event_type="Ended",
+                    trigger_reason="AbnormalCondition" if reason != "ImmediateReset" else "ResetCommand",
+                    tx_id=s.tx,
+                    stopped_reason=reason,
+                    energy_wh=round(s.energy_wh, 1),
+                )
                 if by:
-                    self.harms.append({"ts": t, "charger_id": self.cid[c], "harm": "interrupted_session",
-                                       "action": cause, "decided_by": by, "lost_kwh": lost_kwh})
+                    self.harms.append(
+                        {
+                            "ts": t,
+                            "charger_id": self.cid[c],
+                            "harm": "interrupted_session",
+                            "action": cause,
+                            "decided_by": by,
+                            "lost_kwh": lost_kwh,
+                        }
+                    )
                 n += 1
         return n
 
     # ---------------------------------------------------------------- commands
     def _on_cmd(self, t: int, cmd: Command) -> None:
         c = self.index.get(cmd.charger_id)
-        rec = {"ts": t, "charger_id": cmd.charger_id, "action": cmd.action, "evse": cmd.evse, "reason": cmd.reason,
-               "incident": cmd.incident, "decided_by": cmd.decided_by, "params": str(cmd.params), "result": ""}
+        rec = {
+            "ts": t,
+            "charger_id": cmd.charger_id,
+            "action": cmd.action,
+            "evse": cmd.evse,
+            "reason": cmd.reason,
+            "incident": cmd.incident,
+            "decided_by": cmd.decided_by,
+            "params": str(cmd.params),
+            "result": "",
+        }
         self.commands.append(rec)
         if cmd.action == "halt_rollout":
             self.halted.add((cmd.params["model"], cmd.params["version"]))
@@ -553,13 +727,27 @@ class Engine:
         if c is None:
             rec["result"] = "UnknownCharger"
             return
-        ocpp_action = {"evse_reset": "Reset", "station_reset": "Reset", "unlock": "UnlockConnector",
-                       "set_inoperative": "ChangeAvailability", "set_operative": "ChangeAvailability",
-                       "firmware": "UpdateFirmware", "get_log": "GetLog"}[cmd.action]
+        ocpp_action = {
+            "evse_reset": "Reset",
+            "station_reset": "Reset",
+            "unlock": "UnlockConnector",
+            "set_inoperative": "ChangeAvailability",
+            "set_operative": "ChangeAvailability",
+            "firmware": "UpdateFirmware",
+            "get_log": "GetLog",
+        }[cmd.action]
         evse = cmd.evse if cmd.action in ("evse_reset", "unlock", "set_inoperative", "set_operative") else 0
         st = {"set_inoperative": "Inoperative", "set_operative": "Operative"}.get(cmd.action)
-        self.emit(c, t, ocpp_action, direction="cs", evse=evse, status=st,
-                  firmware=cmd.params.get("version"), message_id=f"c{len(self.commands)}")
+        self.emit(
+            c,
+            t,
+            ocpp_action,
+            direction="cs",
+            evse=evse,
+            status=st,
+            firmware=cmd.params.get("version"),
+            message_id=f"c{len(self.commands)}",
+        )
         if not self.online[c]:
             rec["result"] = "NotConnected"
             self.emit(c, t + 30, ocpp_action, direction="res", evse=evse, status="NotConnected")
@@ -592,16 +780,31 @@ class Engine:
         if cmd.params.get("type") == "OnIdle":
             busy = [s.end for s in self.sessions[c] if (evse == 0 or s.evse == evse) and s.start <= t < s.end]
             if busy:  # OCPP OnIdle: the charger resets when the running sessions have ended
-                later = Command(cmd.charger_id, cmd.action, cmd.evse, {"type": "Immediate"}, reason=cmd.reason,
-                                incident=cmd.incident, decided_by=by)
+                later = Command(
+                    cmd.charger_id,
+                    cmd.action,
+                    cmd.evse,
+                    {"type": "Immediate"},
+                    reason=cmd.reason,
+                    incident=cmd.incident,
+                    decided_by=by,
+                )
                 self.push(max(busy) + 30, "idle_reset", (c, evse, later, action))
                 rec["result"] = "Scheduled"
                 return
         self._interrupt(c, evse, t, "ImmediateReset", cause=action, by=by)
         for ep in self.active[c]:
             if self.cfg["faults"][ep.kind].get("unsafe_to_reset"):
-                self.harms.append({"ts": t, "charger_id": self.cid[c], "harm": "unsafe_reset", "action": action,
-                                   "decided_by": by, "lost_kwh": 0.0})
+                self.harms.append(
+                    {
+                        "ts": t,
+                        "charger_id": self.cid[c],
+                        "harm": "unsafe_reset",
+                        "action": action,
+                        "decided_by": by,
+                        "lost_kwh": 0.0,
+                    }
+                )
         self._remedy(t, c, action, evse, cmd)
         rec["result"] = "Accepted"
         if action == "station_reset":
@@ -634,8 +837,15 @@ class Engine:
 
     def _on_boot(self, t: int, payload: tuple[int, str]) -> None:
         c, reason = payload
-        self.emit(c, t, "BootNotification", status=reason, component=self.model[c],
-                  tech_info=self.w.chargers["vendor"][c], firmware=self.firmware[c])
+        self.emit(
+            c,
+            t,
+            "BootNotification",
+            status=reason,
+            component=self.model[c],
+            tech_info=self.w.chargers["vendor"][c],
+            firmware=self.firmware[c],
+        )
         for e in (1, 2):
             self.status[c][e] = ""
         self._refresh(c, t + 5)
@@ -668,7 +878,9 @@ class Engine:
 
     def _on_log_upload(self, t: int, c: int) -> None:
         kinds = [ep.kind for ep in self.active[c]]
-        g = np.random.Generator(np.random.Philox(key=[self.w.seed, 3_000_003 * 10**10 + (t // 60) * 1000 + c]))
+        g = np.random.Generator(
+            np.random.Philox(key=[self.w.seed, 3_000_003 * 10**10 + (t // 60) * 1000 + c])
+        )
         row = {"ts": t, "charger_id": self.cid[c], "text": texts.diagnostic_log(kinds, g.random(8))}
         self.logs.append(row)
         self.hour_logs.append(row)
@@ -695,14 +907,23 @@ class Engine:
             return
         for st in ("Downloading", "Downloaded", "Installing"):
             self.emit(c, t, "FirmwareStatusNotification", status=st)
-        ok = by == "rollout" or np.random.Generator(np.random.Philox(key=[self.w.seed, 4_000_003 * 10**10 + t * 1000 + c])).random() \
+        ok = (
+            by == "rollout"
+            or np.random.Generator(
+                np.random.Philox(key=[self.w.seed, 4_000_003 * 10**10 + t * 1000 + c])
+            ).random()
             < self.cfg["rollback_remedies"]["firmware_rollback"]
+        )
         if ok:
             self.firmware[c] = version
             if version not in self.fw_history[c]:
                 self.fw_history[c].append(version)
-        self.emit(c, t + 400, "FirmwareStatusNotification", status="Installed" if ok else "InstallationFailed")
-        self.firmware_events.append({"ts": t, "charger_id": self.cid[c], "version": version, "by": by, "ok": ok})
+        self.emit(
+            c, t + 400, "FirmwareStatusNotification", status="Installed" if ok else "InstallationFailed"
+        )
+        self.firmware_events.append(
+            {"ts": t, "charger_id": self.cid[c], "version": version, "by": by, "ok": ok}
+        )
         self.reboot_until[c] = t + 480
         self.push(t + 480, "boot", (c, "FirmwareUpdate"))
         self._refresh(c, t)
@@ -728,7 +949,12 @@ class Engine:
                     continue
                 km = distance_km(pos, self.charger_ll[c]) * 1.25
                 arrive = t + km / fs["speed_kmh"] * HOUR
-                back = distance_km(self.charger_ll[c], (tech["lat"], tech["lon"])) * 1.25 / fs["speed_kmh"] * HOUR
+                back = (
+                    distance_km(self.charger_ll[c], (tech["lat"], tech["lon"]))
+                    * 1.25
+                    / fs["speed_kmh"]
+                    * HOUR
+                )
                 if arrive + fs["visit_hours"]["diagnose"] * HOUR + back > t_end:
                     self._visit_report(int(t_end), tech, s, "not_reached", None, None, "", 0.0)
                     continue
@@ -746,8 +972,17 @@ class Engine:
         cost = fs["visit_cost_eur"] + km * fs["km_cost_eur"]
         if self.site_out[self.site[c]]:
             self._visit_report(t, tech, stop, "site_without_power", None, None, "site_without_power", cost)
-            self.visit_truth.append({"ts": t, "charger_id": stop.charger_id, "necessary": False, "fixed": "",
-                                     "wasted": "grid_outage", "cost_eur": cost, "incident": stop.incident})
+            self.visit_truth.append(
+                {
+                    "ts": t,
+                    "charger_id": stop.charger_id,
+                    "necessary": False,
+                    "fixed": "",
+                    "wasted": "grid_outage",
+                    "cost_eur": cost,
+                    "incident": stop.incident,
+                }
+            )
             return
         eps = [ep for ep in self.active[c] if ep.start <= t]
         fixed, needed = [], []
@@ -761,8 +996,11 @@ class Engine:
                 fixed.append(ep)
                 continue
             ordered = self.part_orders.get((c, part))
-            available = ((ordered is not None and ordered <= t) or (part in stop.parts and u[8 + i % 4] < 0.95)
-                         or u[4 + i % 4] < fs["van_stock"][part])
+            available = (
+                (ordered is not None and ordered <= t)
+                or (part in stop.parts and u[8 + i % 4] < 0.95)
+                or u[4 + i % 4] < fs["van_stock"][part]
+            )
             if available:
                 fixed.append(ep)
                 self.part_orders.pop((c, part), None)
@@ -784,25 +1022,72 @@ class Engine:
         part_needed = needed[0][1] if needed else None
         eta = self.part_orders.get((c, part_needed)) if part_needed else None
         outcome = "part_needed" if needed else ("fixed" if fixed else "no_fault_found")
-        part_used = next((self.cfg["faults"][ep.kind].get("part") for ep in fixed
-                          if self.cfg["faults"][ep.kind].get("part")), None)
+        part_used = next(
+            (
+                self.cfg["faults"][ep.kind].get("part")
+                for ep in fixed
+                if self.cfg["faults"][ep.kind].get("part")
+            ),
+            None,
+        )
         if u[15] >= fs["structured_part_field"]:
             part_used = None  # the structured field is often left empty; the note still says what was done
-        self._visit_report(t + repair_s, tech, stop, outcome, part_used, part_needed, cause, cost, eta=eta,
-                           evse=primary.evse if primary else 1, u=float(u[14]))
-        self.visit_truth.append({"ts": t, "charger_id": stop.charger_id, "necessary": bool(eps),
-                                 "fixed": ",".join(sorted(ep.kind for ep in fixed)),
-                                 "wasted": "" if eps else "no_fault", "cost_eur": cost, "incident": stop.incident,
-                                 "needed": ",".join(sorted(ep.kind for ep, _ in needed))})
+        self._visit_report(
+            t + repair_s,
+            tech,
+            stop,
+            outcome,
+            part_used,
+            part_needed,
+            cause,
+            cost,
+            eta=eta,
+            evse=primary.evse if primary else 1,
+            u=float(u[14]),
+        )
+        self.visit_truth.append(
+            {
+                "ts": t,
+                "charger_id": stop.charger_id,
+                "necessary": bool(eps),
+                "fixed": ",".join(sorted(ep.kind for ep in fixed)),
+                "wasted": "" if eps else "no_fault",
+                "cost_eur": cost,
+                "incident": stop.incident,
+                "needed": ",".join(sorted(ep.kind for ep, _ in needed)),
+            }
+        )
 
-    def _visit_report(self, t: int, tech: dict[str, Any], stop: Stop, outcome: str, part_used: str | None,
-                      part_needed: str | None, cause: str, cost: float, eta: int | None = None, evse: int = 1,
-                      u: float = 1.0) -> None:
+    def _visit_report(
+        self,
+        t: int,
+        tech: dict[str, Any],
+        stop: Stop,
+        outcome: str,
+        part_used: str | None,
+        part_needed: str | None,
+        cause: str,
+        cost: float,
+        eta: int | None = None,
+        evse: int = 1,
+        u: float = 1.0,
+    ) -> None:
         lang = tech["lang"] if u < self.fs["note_language_local"] else "en"
         note = texts.note(cause, lang, evse or 1, part_needed) if cause else ""
-        row = {"visit_id": f"V{next(self.visit_counter)}", "tech_id": tech["tech_id"], "charger_id": stop.charger_id,
-               "ts": int(t), "outcome": outcome, "part_used": part_used, "part_needed": part_needed,
-               "part_eta": eta, "lang": lang, "note": note, "cost_eur": round(cost, 2), "incident": stop.incident}
+        row = {
+            "visit_id": f"V{next(self.visit_counter)}",
+            "tech_id": tech["tech_id"],
+            "charger_id": stop.charger_id,
+            "ts": int(t),
+            "outcome": outcome,
+            "part_used": part_used,
+            "part_needed": part_needed,
+            "part_eta": eta,
+            "lang": lang,
+            "note": note,
+            "cost_eur": round(cost, 2),
+            "incident": stop.incident,
+        }
         self.visits.append(row)
         self.hour_visits.append(row)
 
@@ -810,48 +1095,130 @@ class Engine:
     def write(self, observed: Path, truth: Path) -> None:
         observed.mkdir(parents=True, exist_ok=True)
         truth.mkdir(parents=True, exist_ok=True)
-        pl.concat(self.frames).write_parquet(observed / "messages.parquet", compression="zstd")
+        frames = [*self.frames, self.carry] if self.carry is not None else self.frames
+        pl.concat(frames).write_parquet(observed / "messages.parquet", compression="zstd")
         pl.DataFrame(self.complaints, schema=COMPLAINT_SCHEMA).write_parquet(observed / "complaints.parquet")
         pl.DataFrame(self.visits, schema=VISIT_SCHEMA).write_parquet(observed / "visits.parquet")
         pl.DataFrame(self.logs, schema=LOG_SCHEMA).write_parquet(observed / "logs.parquet")
         pl.DataFrame(self.commands, schema=COMMAND_SCHEMA).write_parquet(observed / "commands.parquet")
         st = self.sessions_truth
-        pl.DataFrame({"ts": [s[0] for s in st], "charger_id": [self.cid[s[1]] for s in st],
-                      "evse": [s[2] for s in st], "auth": [s[3] for s in st], "outcome": [s[4] for s in st],
-                      "cause": [s[5] for s in st], "kwh": [s[6] for s in st]},
-                     schema={"ts": pl.Int64, "charger_id": pl.Utf8, "evse": pl.Int8, "auth": pl.Utf8,
-                             "outcome": pl.Utf8, "cause": pl.Utf8, "kwh": pl.Float64}
-                     ).write_parquet(truth / "sessions.parquet")
-        pl.DataFrame([{"episode": e.id, "charger_id": self.cid[e.charger], "kind": e.kind, "evse": e.evse,
-                       "start": e.start, "onset_end": e.onset_end or None,
-                       "end": None if math.isinf(e.end) else int(e.end), "end_reason": e.end_reason,
-                       "attempts": e.attempts, "injection": e.injection} for e in self.episodes_seen],
-                     schema=EPISODE_SCHEMA).write_parquet(truth / "episodes.parquet")
+        pl.DataFrame(
+            {
+                "ts": [s[0] for s in st],
+                "charger_id": [self.cid[s[1]] for s in st],
+                "evse": [s[2] for s in st],
+                "auth": [s[3] for s in st],
+                "outcome": [s[4] for s in st],
+                "cause": [s[5] for s in st],
+                "kwh": [s[6] for s in st],
+            },
+            schema={
+                "ts": pl.Int64,
+                "charger_id": pl.Utf8,
+                "evse": pl.Int8,
+                "auth": pl.Utf8,
+                "outcome": pl.Utf8,
+                "cause": pl.Utf8,
+                "kwh": pl.Float64,
+            },
+        ).write_parquet(truth / "sessions.parquet")
+        pl.DataFrame(
+            [
+                {
+                    "episode": e.id,
+                    "charger_id": self.cid[e.charger],
+                    "kind": e.kind,
+                    "evse": e.evse,
+                    "start": e.start,
+                    "onset_end": e.onset_end or None,
+                    "end": None if math.isinf(e.end) else int(e.end),
+                    "end_reason": e.end_reason,
+                    "attempts": e.attempts,
+                    "injection": e.injection,
+                }
+                for e in self.episodes_seen
+            ],
+            schema=EPISODE_SCHEMA,
+        ).write_parquet(truth / "episodes.parquet")
         pl.DataFrame(self.harms, schema=HARM_SCHEMA).write_parquet(truth / "harms.parquet")
         pl.DataFrame(self.visit_truth, schema=VISIT_TRUTH_SCHEMA).write_parquet(truth / "visits.parquet")
-        pl.DataFrame(self.firmware_events, schema={"ts": pl.Int64, "charger_id": pl.Utf8, "version": pl.Utf8,
-                                                   "by": pl.Utf8, "ok": pl.Boolean}
-                     ).write_parquet(truth / "firmware.parquet")
+        pl.DataFrame(
+            self.firmware_events,
+            schema={
+                "ts": pl.Int64,
+                "charger_id": pl.Utf8,
+                "version": pl.Utf8,
+                "by": pl.Utf8,
+                "ok": pl.Boolean,
+            },
+        ).write_parquet(truth / "firmware.parquet")
         days = self.usable_h.shape[0]
-        pl.DataFrame({
-            "day": np.repeat(np.arange(days), self.n),
-            "charger_id": self.cid * days,
-            "usable_h": self.usable_h.ravel(), "total_h": self.total_h.ravel(), "reported_h": self.reported_h.ravel(),
-        }).filter(pl.col("total_h") > 0).write_parquet(truth / "availability.parquet")
+        pl.DataFrame(
+            {
+                "day": np.repeat(np.arange(days), self.n),
+                "charger_id": self.cid * days,
+                "usable_h": self.usable_h.ravel(),
+                "total_h": self.total_h.ravel(),
+                "reported_h": self.reported_h.ravel(),
+            }
+        ).filter(pl.col("total_h") > 0).write_parquet(truth / "availability.parquet")
 
 
 COMPLAINT_SCHEMA = {"ts": pl.Int64, "charger_id": pl.Utf8, "lang": pl.Utf8, "text": pl.Utf8}
-VISIT_SCHEMA = {"visit_id": pl.Utf8, "tech_id": pl.Utf8, "charger_id": pl.Utf8, "ts": pl.Int64, "outcome": pl.Utf8,
-                "part_used": pl.Utf8, "part_needed": pl.Utf8, "part_eta": pl.Int64, "lang": pl.Utf8, "note": pl.Utf8,
-                "cost_eur": pl.Float64, "incident": pl.Utf8}
+VISIT_SCHEMA = {
+    "visit_id": pl.Utf8,
+    "tech_id": pl.Utf8,
+    "charger_id": pl.Utf8,
+    "ts": pl.Int64,
+    "outcome": pl.Utf8,
+    "part_used": pl.Utf8,
+    "part_needed": pl.Utf8,
+    "part_eta": pl.Int64,
+    "lang": pl.Utf8,
+    "note": pl.Utf8,
+    "cost_eur": pl.Float64,
+    "incident": pl.Utf8,
+}
 LOG_SCHEMA = {"ts": pl.Int64, "charger_id": pl.Utf8, "text": pl.Utf8}
-COMMAND_SCHEMA = {"ts": pl.Int64, "charger_id": pl.Utf8, "action": pl.Utf8, "evse": pl.Int64, "reason": pl.Utf8,
-                  "incident": pl.Utf8, "decided_by": pl.Utf8, "params": pl.Utf8, "result": pl.Utf8}
-EPISODE_SCHEMA = {"episode": pl.Int64, "charger_id": pl.Utf8, "kind": pl.Utf8, "evse": pl.Int64, "start": pl.Int64,
-                  "onset_end": pl.Int64, "end": pl.Int64, "end_reason": pl.Utf8, "attempts": pl.Int64,
-                  "injection": pl.Boolean}
-HARM_SCHEMA = {"ts": pl.Int64, "charger_id": pl.Utf8, "harm": pl.Utf8, "action": pl.Utf8, "decided_by": pl.Utf8,
-               "lost_kwh": pl.Float64}
-VISIT_TRUTH_SCHEMA = {"ts": pl.Int64, "charger_id": pl.Utf8, "necessary": pl.Boolean, "fixed": pl.Utf8,
-                      "wasted": pl.Utf8, "cost_eur": pl.Float64, "incident": pl.Utf8, "needed": pl.Utf8}
+COMMAND_SCHEMA = {
+    "ts": pl.Int64,
+    "charger_id": pl.Utf8,
+    "action": pl.Utf8,
+    "evse": pl.Int64,
+    "reason": pl.Utf8,
+    "incident": pl.Utf8,
+    "decided_by": pl.Utf8,
+    "params": pl.Utf8,
+    "result": pl.Utf8,
+}
+EPISODE_SCHEMA = {
+    "episode": pl.Int64,
+    "charger_id": pl.Utf8,
+    "kind": pl.Utf8,
+    "evse": pl.Int64,
+    "start": pl.Int64,
+    "onset_end": pl.Int64,
+    "end": pl.Int64,
+    "end_reason": pl.Utf8,
+    "attempts": pl.Int64,
+    "injection": pl.Boolean,
+}
+HARM_SCHEMA = {
+    "ts": pl.Int64,
+    "charger_id": pl.Utf8,
+    "harm": pl.Utf8,
+    "action": pl.Utf8,
+    "decided_by": pl.Utf8,
+    "lost_kwh": pl.Float64,
+}
+VISIT_TRUTH_SCHEMA = {
+    "ts": pl.Int64,
+    "charger_id": pl.Utf8,
+    "necessary": pl.Boolean,
+    "fixed": pl.Utf8,
+    "wasted": pl.Utf8,
+    "cost_eur": pl.Float64,
+    "incident": pl.Utf8,
+    "needed": pl.Utf8,
+}
 _ = defaultdict

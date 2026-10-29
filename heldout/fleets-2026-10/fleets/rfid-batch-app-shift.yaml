@@ -1,0 +1,133 @@
+# Held-out fleet: a bad batch of RFID readers from one supplier fitted to DC-60 and AC-22 chargers
+# (frequent, silent, rarely cured by a reset) at a time when drivers have moved from cards to the app
+# and contactless, so each dead reader produces fewer failed attempts and fewer complaints. Drivers
+# follow a commuter profile. Four releases roll out in the same week; only the DC-60 one is buggy.
+
+seed: 9152
+start: "2026-02-02"          # a Monday
+history_days: 84
+test_days: 28
+
+fleet:
+  chargers: 900
+  countries:
+    DE: {share: 0.24, utc: 1, lang: de, technicians: 7}
+    GB: {share: 0.14, utc: 0, lang: en, technicians: 5}
+    IT: {share: 0.10, utc: 1, lang: it, technicians: 4}
+    NL: {share: 0.08, utc: 1, lang: nl, technicians: 3}
+    SE: {share: 0.07, utc: 1, lang: sv, technicians: 3}
+    DK: {share: 0.07, utc: 1, lang: da, technicians: 3}
+    PL: {share: 0.08, utc: 1, lang: pl, technicians: 3}
+    CZ: {share: 0.06, utc: 1, lang: cs, technicians: 2}
+    AT: {share: 0.06, utc: 1, lang: de, technicians: 2}
+    HU: {share: 0.05, utc: 1, lang: hu, technicians: 2}
+    RO: {share: 0.05, utc: 2, lang: ro, technicians: 2}
+  chargers_per_site: [1, 6]
+  site_radius_km: 140
+
+models:
+  HPC-350:   {vendor: Alpenstrom, kind: HPC, kw: 350, connectors: 2, share: 0.18, sessions_per_day: 10, firmware: ["3.4.2", "3.5.0"]}
+  DC-150:    {vendor: Nordvolt,   kind: DC,  kw: 150, connectors: 2, share: 0.27, sessions_per_day: 8,  firmware: ["2.11.0", "2.12.1"]}
+  DC-60:     {vendor: Kestrel,    kind: DC,  kw: 60,  connectors: 2, share: 0.22, sessions_per_day: 6,  firmware: ["1.9.7", "1.10.0"]}
+  AC-22:     {vendor: Volta,      kind: AC,  kw: 22,  connectors: 2, share: 0.33, sessions_per_day: 3,  firmware: ["5.0.3", "5.1.0"]}
+
+drivers:
+  auth_mix: {rfid: 0.22, app: 0.50, contactless: 0.28}
+  retry_after_failure: 0.5      # app users simply try again
+  complaint_per_failure: 0.02
+  hourly_profile: [0.1, 0.08, 0.06, 0.06, 0.1, 0.4, 1.2, 2.0, 1.9, 1.2, 0.8, 0.8,
+                   0.9, 0.8, 0.8, 1.0, 1.5, 2.0, 2.1, 1.6, 1.1, 0.7, 0.4, 0.2]
+  weekend_factor: 0.6           # commuters stay home at weekends
+  site_demand_sd: 0.4
+  kwh_per_session: {HPC: 34, DC: 25, AC: 11}
+  revenue_per_kwh_eur: 0.6
+
+hazard_scale: 0.7
+faults:
+  controller_hang:
+    hazard: {HPC-350: 0.55, DC-150: 0.75, DC-60: 0.6, AC-22: 0.35}
+    effect: {start_fails: 0.97}
+    signals: {watchdog_event: 0.55}
+    remedies: {evse_reset: 0.88, station_reset: 0.95}
+    natural_end_hours: 120
+    part: null
+  connector_lock:
+    hazard: {HPC-350: 0.25, DC-150: 0.4, DC-60: 0.3, AC-22: 0.45}
+    effect: {connector_faulted: true}
+    tech_codes: {HPC-350: "E-LCK-31", DC-150: "0x2A07", DC-60: "LOCK_TIMEOUT", AC-22: "F17"}
+    remedies: {unlock: 0.62, evse_reset: 0.15, station_reset: 0.2}
+    natural_end_hours: 400
+    part: lock_actuator
+  power_module:
+    hazard: {HPC-350: 0.32, DC-150: 0.22, DC-60: 0.18, AC-22: 0.0}
+    onset_days: [2, 6]
+    effect: {derate_to: 0.55, then: charger_faulted}
+    signals: {temperature_rise_c: 18}
+    tech_codes: {HPC-350: "E-PWR-12", DC-150: "0x3110", DC-60: "PM_OVERTEMP"}
+    remedies: {evse_reset: 0.05, station_reset: 0.08, relief_hours: 5, relief: 0.6}
+    natural_end_hours: null
+    part: power_module
+  rfid_reader:
+    hazard: {HPC-350: 0.18, DC-150: 0.25, DC-60: 1.1, AC-22: 0.9}    # bad reader batch
+    effect: {rfid_fails: 1.0}
+    remedies: {evse_reset: 0.08, station_reset: 0.15}
+    natural_end_hours: null
+    part: rfid_reader
+  payment_terminal:
+    hazard: {HPC-350: 0.3, DC-150: 0.35, DC-60: 0.25, AC-22: 0.0}
+    effect: {contactless_fails: 1.0}
+    signals: {terminal_event: 0.3}
+    tech_codes: {HPC-350: "PT-OFFLINE", DC-150: "PT-OFFLINE", DC-60: "PT-OFFLINE"}
+    remedies: {evse_reset: 0.55, station_reset: 0.6}
+    natural_end_hours: 200
+    part: payment_terminal
+  cable_wear:
+    hazard: {HPC-350: 0.12, DC-150: 0.15, DC-60: 0.12, AC-22: 0.05}
+    effect: {ev_comm_fails: 0.45}
+    remedies: {evse_reset: 0.03, station_reset: 0.03}
+    natural_end_hours: null
+    part: cable
+  isolation_fault:
+    hazard: {HPC-350: 0.06, DC-150: 0.08, DC-60: 0.07, AC-22: 0.05}
+    effect: {charger_faulted: true}
+    tech_codes: {HPC-350: "E-ISO-02", DC-150: "0x1F01", DC-60: "GROUND_FAULT", AC-22: "F03"}
+    unsafe_to_reset: true
+    remedies: {evse_reset: 0.0, station_reset: 0.0}
+    natural_end_hours: null
+    part: cable
+  comm_loss:
+    hazard: {HPC-350: 0.25, DC-150: 0.3, DC-60: 0.35, AC-22: 0.4}
+    effect: {offline: true, still_charges: 0.7}
+    remedies: {}
+    natural_end_hours: 30
+    part: modem
+  grid_outage:
+    hazard_per_site: 0.12
+    duration_hours: [2, 14]
+    effect: {offline: true, still_charges: 0.0}
+    part: null
+
+firmware_rollouts:                        # a coordinated maintenance week across all vendors
+  - {model: HPC-350, version: "3.5.0",  day: 86, share_per_day: 0.12, bug: null}
+  - {model: DC-150,  version: "2.12.1", day: 87, share_per_day: 0.12, bug: null}
+  - {model: AC-22,   version: "5.1.0",  day: 88, share_per_day: 0.12, bug: null}
+  - {model: DC-60,   version: "1.10.0", day: 89, share_per_day: 0.12,
+     bug: {ev_comm_fails: 0.3, affected_ev_share: 0.35}}
+rollback_remedies: {firmware_rollback: 0.97}
+
+field_service:
+  workday_local: [8, 17]
+  workdays: [0, 1, 2, 3, 4]
+  speed_kmh: 70
+  visit_hours: {diagnose: 0.75, repair: 1.25}
+  van_stock: {lock_actuator: 0.7, power_module: 0.25, rfid_reader: 0.3, payment_terminal: 0.5,
+              cable: 0.45, modem: 0.8}       # readers from the good batch are scarce
+  part_lead_days: {lock_actuator: 2, power_module: 4, rfid_reader: 5, payment_terminal: 3, cable: 3, modem: 1}
+  visit_cost_eur: 240
+  km_cost_eur: 0.45
+  note_language_local: 0.8
+  note_cause_wrong: 0.1
+  structured_part_field: 0.6
+
+untrusted_text:
+  injection_share: 0.02

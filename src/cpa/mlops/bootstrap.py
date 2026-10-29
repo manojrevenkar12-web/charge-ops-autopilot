@@ -14,13 +14,19 @@ from ..ml import dataset, models
 from .registry import Registry
 
 
-def train_champions(registry: Registry, prep: dataset.Prepared, chargers: pl.DataFrame,
-                    log: Any = print) -> dict[str, Any]:
+def train_champions(
+    registry: Registry, prep: dataset.Prepared, chargers: pl.DataFrame, log: Any = print
+) -> dict[str, Any]:
     cfg = settings.models()
     ds = dataset.build(prep, chargers, lexicon.read)
-    out: dict[str, Any] = {"incidents": ds["incidents"].height,
-                           "labels": dict(ds["incidents"]["label"].value_counts().iter_rows())}
-    for kind, train, col in (("diagnosis", models.train_diagnosis, "onset"), ("risk", models.train_risk, "hour")):
+    out: dict[str, Any] = {
+        "incidents": ds["incidents"].height,
+        "labels": dict(ds["incidents"]["label"].value_counts().iter_rows()),
+    }
+    for kind, train, col in (
+        ("diagnosis", models.train_diagnosis, "onset"),
+        ("risk", models.train_risk, "hour"),
+    ):
         data = ds[kind]
         m = train(data, cfg[kind])
         _, va = models._split(data, col, cfg[kind]["validation_days"])
@@ -32,12 +38,23 @@ def train_champions(registry: Registry, prep: dataset.Prepared, chargers: pl.Dat
         folder.mkdir(parents=True, exist_ok=True)
         m.booster.save_model(str(folder / "model.txt"))
         (folder / "model.onnx").write_bytes(onx)
-        (folder / "meta.json").write_text(json.dumps(
-            {"kind": m.kind, "classes": m.classes, "encoder": m.encoder.to_json(), "metrics": m.metrics,
-             "card": m.card, "checks": checks}, default=float))
+        (folder / "meta.json").write_text(
+            json.dumps(
+                {
+                    "kind": m.kind,
+                    "classes": m.classes,
+                    "encoder": m.encoder.to_json(),
+                    "metrics": m.metrics,
+                    "card": m.card,
+                    "checks": checks,
+                },
+                default=float,
+            )
+        )
         out[kind] = {"version": v, "metrics": m.metrics, "checks": checks, "card": m.card}
-        log(f"{kind} v{v}: {({k: round(x, 3) for k, x in m.metrics.items() if isinstance(x, float)})}")
-    ds["diagnosis"].select(*[c for c in ds["diagnosis"].columns if c in ("charger_id", "onset", "label")],
-                           *[c for c in ds["diagnosis"].columns if c not in ("charger_id", "onset", "label", "info")]
-                           ).write_parquet(registry.root / "bootstrap" / "reference_rows.parquet")
+        log(f"{kind} v{v}: { ({k: round(x, 3) for k, x in m.metrics.items() if isinstance(x, float)}) }")
+    ds["diagnosis"].select(
+        *[c for c in ds["diagnosis"].columns if c in ("charger_id", "onset", "label")],
+        *[c for c in ds["diagnosis"].columns if c not in ("charger_id", "onset", "label", "info")],
+    ).write_parquet(registry.root / "bootstrap" / "reference_rows.parquet")
     return out

@@ -62,8 +62,11 @@ class StationLink(ChargePoint):
 
     @on(Action.boot_notification)
     async def on_boot(self, **_: Any) -> call_result.BootNotification:
-        return call_result.BootNotification(current_time=self.csms.clock.iso(), interval=self.csms.heartbeat_s,
-                                            status=RegistrationStatusEnumType.accepted)
+        return call_result.BootNotification(
+            current_time=self.csms.clock.iso(),
+            interval=self.csms.heartbeat_s,
+            status=RegistrationStatusEnumType.accepted,
+        )
 
     @on(Action.heartbeat)
     async def on_heartbeat(self, **_: Any) -> call_result.Heartbeat:
@@ -106,10 +109,17 @@ class CSMS:
         self.links: dict[str, StationLink] = {}
         self.server: Any = None
 
-    async def record(self, sid: str, action: str, payload: dict[str, Any], message_id: str,
-                     direction: str = "cp") -> None:
-        rows = ocpp_flat.from_payload(action, payload, charger_id=sid, received=self.clock.now(), direction=direction,
-                                      message_id=message_id)
+    async def record(
+        self, sid: str, action: str, payload: dict[str, Any], message_id: str, direction: str = "cp"
+    ) -> None:
+        rows = ocpp_flat.from_payload(
+            action,
+            payload,
+            charger_id=sid,
+            received=self.clock.now(),
+            direction=direction,
+            message_id=message_id,
+        )
         await self.store.append(rows, payload)
 
     async def _handler(self, ws: Any) -> None:
@@ -139,9 +149,18 @@ class CSMS:
     async def send(self, cmd: Command, verdict: dict[str, Any]) -> str:
         """Send one autopilot command as an OCPP call; record it, the verdict, and the station's answer."""
         now = self.clock.now()
-        rec = {"ts": now, "charger_id": cmd.charger_id, "action": cmd.action, "evse": cmd.evse, "params": cmd.params,
-               "decided_by": cmd.decided_by, "incident": cmd.incident, "reason": cmd.reason, "shield": verdict,
-               "result": ""}
+        rec = {
+            "ts": now,
+            "charger_id": cmd.charger_id,
+            "action": cmd.action,
+            "evse": cmd.evse,
+            "params": cmd.params,
+            "decided_by": cmd.decided_by,
+            "incident": cmd.incident,
+            "reason": cmd.reason,
+            "shield": verdict,
+            "result": "",
+        }
         link = self.links.get(cmd.charger_id)
         payload = self._payload(cmd)
         if payload is None:
@@ -150,14 +169,25 @@ class CSMS:
             rec["result"] = "NotConnected"
         else:
             action = type(payload).__name__
-            await self.record(cmd.charger_id, action, ocpp_flat.to_payload(_flat_of(cmd, now))[1], f"c{now}", "cs")
+            await self.record(
+                cmd.charger_id, action, ocpp_flat.to_payload(_flat_of(cmd, now))[1], f"c{now}", "cs"
+            )
             try:
                 res = await link.call(payload, suppress=False)
                 rec["result"] = str(getattr(res, "status", "Accepted"))
             except Exception as e:  # timeout or CallError: recorded, not retried blindly
                 rec["result"] = f"Error:{type(e).__name__}"
-            await self.store.append([{**_flat_of(cmd, self.clock.now()), "direction": "res", "action": action,
-                                      "status": rec["result"]}], {"status": rec["result"]})
+            await self.store.append(
+                [
+                    {
+                        **_flat_of(cmd, self.clock.now()),
+                        "direction": "res",
+                        "action": action,
+                        "status": rec["result"],
+                    }
+                ],
+                {"status": rec["result"]},
+            )
         await self.store.command(rec)
         return rec["result"]
 
@@ -172,24 +202,48 @@ class CSMS:
         if a == "unlock":
             return call.UnlockConnector(evse_id=cmd.evse or 1, connector_id=1)
         if a in ("set_inoperative", "set_operative"):
-            st = OperationalStatusEnumType.inoperative if a == "set_inoperative" else OperationalStatusEnumType.operative
+            st = (
+                OperationalStatusEnumType.inoperative
+                if a == "set_inoperative"
+                else OperationalStatusEnumType.operative
+            )
             return call.ChangeAvailability(operational_status=st, evse={"id": cmd.evse} if cmd.evse else None)
         if a == "get_log":
-            return call.GetLog(log={"remote_location": "https://logs.example/upload"},
-                               log_type=LogEnumType.diagnostics_log, request_id=1)
+            return call.GetLog(
+                log={"remote_location": "https://logs.example/upload"},
+                log_type=LogEnumType.diagnostics_log,
+                request_id=1,
+            )
         if a == "firmware":
-            return call.UpdateFirmware(request_id=1, firmware={
-                "location": f"https://firmware.example/{p.get('version')}",
-                "retrieve_date_time": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")})
+            return call.UpdateFirmware(
+                request_id=1,
+                firmware={
+                    "location": f"https://firmware.example/{p.get('version')}",
+                    "retrieve_date_time": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                },
+            )
         return None
 
 
 def _flat_of(cmd: Command, now: int) -> dict[str, Any]:
-    action = {"evse_reset": "Reset", "station_reset": "Reset", "unlock": "UnlockConnector",
-              "set_inoperative": "ChangeAvailability", "set_operative": "ChangeAvailability",
-              "get_log": "GetLog", "firmware": "UpdateFirmware"}.get(cmd.action, cmd.action)
+    action = {
+        "evse_reset": "Reset",
+        "station_reset": "Reset",
+        "unlock": "UnlockConnector",
+        "set_inoperative": "ChangeAvailability",
+        "set_operative": "ChangeAvailability",
+        "get_log": "GetLog",
+        "firmware": "UpdateFirmware",
+    }.get(cmd.action, cmd.action)
     st = {"set_inoperative": "Inoperative", "set_operative": "Operative"}.get(cmd.action)
     return {c: None for c in ocpp_flat.COLUMNS} | {
-        "ts": now, "received": now, "charger_id": cmd.charger_id, "direction": "cs", "action": action,
+        "ts": now,
+        "received": now,
+        "charger_id": cmd.charger_id,
+        "direction": "cs",
+        "action": action,
         "evse": cmd.evse if cmd.action in ("evse_reset", "unlock", "set_inoperative", "set_operative") else 0,
-        "status": st, "firmware": cmd.params.get("version"), "message_id": f"c{now}"}
+        "status": st,
+        "firmware": cmd.params.get("version"),
+        "message_id": f"c{now}",
+    }

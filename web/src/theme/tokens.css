@@ -1,0 +1,73 @@
+/* Design tokens. Colours follow IEC wiring: neutral blue for what the autopilot did on its own, grey
+   conductor for what waited for an operator, copper for a breaker the shield opened, earth green for
+   a fix that held. Every component reads these; no colour or size is written anywhere else. */
+:root {
+  --paper: #f2f4f3;
+  --sheet: #ffffff;
+  --ink: #17202a;
+  --ink-2: #44505c;
+  --ink-3: #69737d;
+  --rule: #d8dde1;
+  --rule-2: #b9c1c8;
+  --act: #1f5fa8;
+  --act-wash: #e3ecf7;
+  --propose: #5b6470;
+  --propose-wash: #eceef0;
+  --open: #b4470f;
+  --open-wash: #f8e9df;
+  --held: #2c7a49;
+  --held-wash: #e2f1e7;
+  --truth: #6b3fa0;
+  --truth-wash: #efe8f7;
+  --focus: #1f5fa8;
+
+  --font: "Barlow", system-ui, sans-serif;
+  --font-narrow: "Barlow Semi Condensed", "Barlow", system-ui, sans-serif;
+  --t-xs: 0.75rem;
+  --t-sm: 0.875rem;
+  --t-md: 1rem;
+  --t-lg: 1.25rem;
+  --t-xl: 1.6rem;
+  --t-2xl: 2.4rem;
+  --t-3xl: 3.4rem;
+  --lh: 1.5;
+  --lh-tight: 1.08;
+
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 72px;
+  --r-1: 2px;
+  --r-2: 6px;
+  --line: 1px;
+  --wire: 2.5px;
+  --rail: 232px;
+  --measure: 1080px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #12171c;
+    --sheet: #1a2128;
+    --ink: #e8ecef;
+    --ink-2: #b5bec6;
+    --ink-3: #8d98a2;
+    --rule: #2b343d;
+    --rule-2: #3d4852;
+    --act: #6aa3e6;
+    --act-wash: #1b2b3d;
+    --propose: #9aa4ae;
+    --propose-wash: #242c34;
+    --open: #ec8a52;
+    --open-wash: #3a2418;
+    --held: #6cc290;
+    --held-wash: #18302a;
+    --truth: #b391e0;
+    --truth-wash: #2a2238;
+    --focus: #6aa3e6;
+  }
+}

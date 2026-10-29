@@ -1,0 +1,4 @@
+$schema: https://azuremlschemas.azureedge.net/latest/managedOnlineEndpoint.schema.json
+name: charge-ops-diagnosis
+auth_mode: aad_token
+description: Diagnosis and failure-risk scoring (ONNX Runtime) for services outside the autopilot.
